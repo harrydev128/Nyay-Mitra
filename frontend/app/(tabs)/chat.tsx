@@ -16,9 +16,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { chatAPI } from '../../services/api';
+import { useAppContext } from '../../context/AppContext';
 
 interface Message {
   id: string;
@@ -28,17 +29,26 @@ interface Message {
 }
 
 export default function ChatScreen() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [language, setLanguage] = useState<'hindi' | 'english'>('hindi');
-  const [sessionId, setSessionId] = useState('');
+  const { language, isPremium } = useAppContext();
   const [isRecording, setIsRecording] = useState(false);
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    initializeChat();
+    const welcomeMessage: Message = {
+      id: 'welcome',
+      role: 'assistant',
+      content: language === 'hindi'
+        ? 'नमस्ते! मैं NyayMitra हूं - आपका AI कानूनी सहायक। 🙏\n\nमुझसे कोई भी कानूनी सवाल पूछें जैसे:\n• नौकरी से निकाला गया\n• पुलिस ने गिरफ्तार किया\n• किरायेदार परेशानी\n• उपभोक्ता शिकायत\n\nआप बोलकर या लिखकर सवाल पूछ सकते हैं।'
+        : 'Hello! I am NyayMitra - your AI Legal Assistant. 🙏\n\nAsk me any legal question like:\n• Fired from job\n• Arrested by police\n• Tenant troubles\n• Consumer complaints\n\nYou can ask questions by voice or text.',
+      timestamp: new Date().toISOString(),
+    };
+    setMessages([welcomeMessage]);
+
     return () => {
       if (recording) {
         recording.stopAndUnloadAsync();
@@ -46,49 +56,24 @@ export default function ChatScreen() {
     };
   }, []);
 
-  const initializeChat = async () => {
-    // Generate or retrieve session ID
-    let storedSessionId = await AsyncStorage.getItem('chat_session_id');
-    if (!storedSessionId) {
-      storedSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      await AsyncStorage.setItem('chat_session_id', storedSessionId);
-    }
-    setSessionId(storedSessionId);
-
-    // Load chat history
-    try {
-      const history = await chatAPI.getHistory(storedSessionId);
-      if (history && history.length > 0) {
-        setMessages(history);
-      } else {
-        // Add welcome message
-        const welcomeMessage: Message = {
-          id: 'welcome',
-          role: 'assistant',
-          content: language === 'hindi'
-            ? 'नमस्ते! मैं NyayMitra हूं - आपका AI कानूनी सहायक। 🙏\n\nमुझसे कोई भी कानूनी सवाल पूछें जैसे:\n• नौकरी से निकाला गया\n• पुलिस ने गिरफ्तार किया\n• किरायेदार परेशानी\n• उपभोक्ता शिकायत\n\nआप बोलकर या लिखकर सवाल पूछ सकते हैं।'
-            : 'Hello! I am NyayMitra - your AI Legal Assistant. 🙏\n\nAsk me any legal question like:\n• Fired from job\n• Arrested by police\n• Tenant troubles\n• Consumer complaints\n\nYou can ask questions by voice or text.',
-          timestamp: new Date().toISOString(),
-        };
-        setMessages([welcomeMessage]);
-      }
-    } catch (error) {
-      console.log('Error loading history:', error);
-      // Add welcome message on error
-      const welcomeMessage: Message = {
-        id: 'welcome',
-        role: 'assistant',
-        content: language === 'hindi'
-          ? 'नमस्ते! मैं NyayMitra हूं - आपका AI कानूनी सहायक। 🙏\n\nमुझसे कोई भी कानूनी सवाल पूछें।'
-          : 'Hello! I am NyayMitra - your AI Legal Assistant. 🙏\n\nAsk me any legal question.',
-        timestamp: new Date().toISOString(),
-      };
-      setMessages([welcomeMessage]);
-    }
-  };
-
   const sendMessage = async () => {
     if (!inputText.trim() || isLoading) return;
+
+    // Premium limit check
+    const userMessageCount = messages.filter(m => m.role === 'user').length;
+    if (!isPremium && userMessageCount >= 3) {
+      Alert.alert(
+        language === 'hindi' ? 'प्रीमियम आवश्यक' : 'Premium Required',
+        language === 'hindi'
+          ? 'मुफ्त उपयोगकर्ताओं के लिए मैसेज सीमा समाप्त हो गई है। कृपया असीमित पहुँच के लिए प्रीमियम में अपग्रेड करें।'
+          : 'Message limit reached for free users. Please upgrade to Premium for unlimited access.',
+        [
+          { text: language === 'hindi' ? 'अभी अपग्रेड करें' : 'Upgrade Now', onPress: () => router.push('/profile') },
+          { text: language === 'hindi' ? 'ठीक है' : 'OK' }
+        ]
+      );
+      return;
+    }
 
     const userMessage: Message = {
       id: `user_${Date.now()}`,
@@ -103,8 +88,8 @@ export default function ChatScreen() {
     Keyboard.dismiss();
 
     try {
-      const response = await chatAPI.sendMessage(sessionId, userMessage.content, language);
-      
+      const response = await chatAPI.sendMessage('local', userMessage.content, language);
+
       const assistantMessage: Message = {
         id: response.message_id || `assistant_${Date.now()}`,
         role: 'assistant',
@@ -135,7 +120,7 @@ export default function ChatScreen() {
       if (status !== 'granted') {
         Alert.alert(
           language === 'hindi' ? 'अनुमति आवश्यक' : 'Permission Required',
-          language === 'hindi' 
+          language === 'hindi'
             ? 'वॉइस इनपुट के लिए माइक्रोफोन की अनुमति दें'
             : 'Please allow microphone access for voice input'
         );
@@ -165,17 +150,17 @@ export default function ChatScreen() {
     await Audio.setAudioModeAsync({
       allowsRecordingIOS: false,
     });
-    
+
     // Note: For actual speech-to-text, you would send the audio to a transcription service
     // For MVP, we'll show a placeholder message
     Alert.alert(
       language === 'hindi' ? 'वॉइस इनपुट' : 'Voice Input',
-      language === 'hindi' 
+      language === 'hindi'
         ? 'वॉइस-टू-टेक्स्ट जल्द आ रहा है। अभी के लिए टाइप करें।'
         : 'Voice-to-text coming soon. Please type for now.',
       [{ text: 'OK' }]
     );
-    
+
     setRecording(null);
   };
 
@@ -197,18 +182,8 @@ export default function ChatScreen() {
         {
           text: language === 'hindi' ? 'हां' : 'Yes',
           style: 'destructive',
-          onPress: async () => {
-            try {
-              await chatAPI.clearHistory(sessionId);
-              // Generate new session
-              const newSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-              await AsyncStorage.setItem('chat_session_id', newSessionId);
-              setSessionId(newSessionId);
-              setMessages([]);
-              initializeChat();
-            } catch (error) {
-              console.log('Clear error:', error);
-            }
+          onPress: () => {
+            setMessages([]);
           },
         },
       ]
@@ -259,14 +234,6 @@ export default function ChatScreen() {
           </View>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.langButton}
-            onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')}
-          >
-            <Text style={styles.langButtonText}>
-              {language === 'hindi' ? 'EN' : 'हि'}
-            </Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.clearButton} onPress={clearChat}>
             <Ionicons name="trash-outline" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>

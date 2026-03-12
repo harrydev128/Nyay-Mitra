@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -9,52 +9,30 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
+import { useAppContext } from '../../context/AppContext';
 
 export default function MoreScreen() {
-  const [language, setLanguage] = useState<'hindi' | 'english'>('hindi');
+  const router = useRouter();
+  const { language } = useAppContext();
 
   const getText = (hindi: string, english: string) => {
     return language === 'hindi' ? hindi : english;
   };
 
   const emergencyNumbers = [
-    { name_hindi: 'पुलिस', name_english: 'Police', number: '100', icon: 'shield', color: Colors.deepBlue },
+    { name_hindi: 'पुलिस', name_english: 'Police', number: '112', icon: 'shield', color: Colors.deepBlue },
     { name_hindi: 'महिला हेल्पलाइन', name_english: 'Women Helpline', number: '181', icon: 'woman', color: Colors.pink },
     { name_hindi: 'एम्बुलेंस', name_english: 'Ambulance', number: '108', icon: 'medkit', color: Colors.red },
-    { name_hindi: 'कानूनी सहायता', name_english: 'Legal Aid', number: '15100', icon: 'call', color: Colors.green },
+    { name_hindi: 'कानूनी सहायता', name_english: 'Legal Aid', number: '15112', icon: 'call', color: Colors.green },
     { name_hindi: 'बाल हेल्पलाइन', name_english: 'Child Helpline', number: '1098', icon: 'people', color: Colors.saffron },
     { name_hindi: 'उपभोक्ता हेल्पलाइन', name_english: 'Consumer Helpline', number: '1800-11-4000', icon: 'cart', color: Colors.purple },
     { name_hindi: 'साइबर क्राइम', name_english: 'Cyber Crime', number: '1930', icon: 'laptop', color: Colors.lightBlue },
     { name_hindi: 'रोड एक्सीडेंट', name_english: 'Road Accident', number: '1073', icon: 'car', color: Colors.brown },
   ];
 
-  const menuItems = [
-    {
-      title_hindi: 'भाषा बदलें',
-      title_english: 'Change Language',
-      icon: 'language',
-      action: () => setLanguage(language === 'hindi' ? 'english' : 'hindi'),
-    },
-    {
-      title_hindi: 'ऐप के बारे में',
-      title_english: 'About App',
-      icon: 'information-circle',
-      action: () => {},
-    },
-    {
-      title_hindi: 'शेयर करें',
-      title_english: 'Share App',
-      icon: 'share-social',
-      action: () => {},
-    },
-    {
-      title_hindi: 'फीडबैक दें',
-      title_english: 'Give Feedback',
-      icon: 'chatbox-ellipses',
-      action: () => {},
-    },
-  ];
+
 
   const callNumber = (number: string) => {
     Linking.openURL(`tel:${number}`);
@@ -68,14 +46,43 @@ export default function MoreScreen() {
           <Text style={styles.headerTitle}>
             {getText('अधिक विकल्प', 'More Options')}
           </Text>
-          <TouchableOpacity
-            style={styles.langToggle}
-            onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')}
-          >
-            <Text style={styles.langText}>
-              {language === 'hindi' ? 'EN' : 'हि'}
+        </View>
+
+        {/* Tools Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="apps" size={24} color={Colors.deepBlue} />
+            <Text style={styles.sectionTitle}>
+              {getText('टूल्स', 'Legal Tools')}
             </Text>
-          </TouchableOpacity>
+          </View>
+          <View style={styles.menuList}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/doc-generator')}
+            >
+              <View style={styles.menuItemLeft}>
+                <Ionicons name="qr-code-outline" size={24} color={Colors.purple} />
+                <Text style={styles.menuItemText}>
+                  {getText('डॉक्यूमेंट जनरेटर', 'Document Generator')}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/doc-scanner')}
+            >
+              <View style={styles.menuItemLeft}>
+                <Ionicons name="scan-outline" size={24} color={Colors.lightBlue} />
+                <Text style={styles.menuItemText}>
+                  {getText('डॉक्यूमेंट स्कैनर', 'Document Scanner')}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Emergency Numbers Section */}
@@ -83,13 +90,9 @@ export default function MoreScreen() {
           <View style={styles.sectionHeader}>
             <Ionicons name="call" size={24} color={Colors.red} />
             <Text style={styles.sectionTitle}>
-              {getText('आपातकालीन नंबर', 'Emergency Numbers')}
+              {getText('हेल्पलाइन नंबर', 'Helplines')}
             </Text>
           </View>
-          <Text style={styles.sectionSubtitle}>
-            {getText('किसी भी आपातकाल में तुरंत कॉल करें', 'Call immediately in any emergency')}
-          </Text>
-          
           <View style={styles.emergencyGrid}>
             {emergencyNumbers.map((item, index) => (
               <TouchableOpacity
@@ -98,7 +101,7 @@ export default function MoreScreen() {
                 onPress={() => callNumber(item.number)}
               >
                 <View style={[styles.emergencyIcon, { backgroundColor: item.color }]}>
-                  <Ionicons name={`${item.icon}-outline` as any} size={24} color={Colors.white} />
+                  <Ionicons name={`${item.icon}-outline` as any} size={22} color={Colors.white} />
                 </View>
                 <Text style={styles.emergencyNumber}>{item.number}</Text>
                 <Text style={styles.emergencyName}>
@@ -109,82 +112,22 @@ export default function MoreScreen() {
           </View>
         </View>
 
-        {/* Coming Soon Features */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="rocket" size={24} color={Colors.saffron} />
-            <Text style={styles.sectionTitle}>
-              {getText('जल्द आ रहा है', 'Coming Soon')}
-            </Text>
-          </View>
-          
-          <View style={styles.comingSoonList}>
-            {[
-              { icon: 'document-text', title_hindi: 'स्मार्ट डॉक्यूमेंट जनरेटर', title_english: 'Smart Document Generator' },
-              { icon: 'scan', title_hindi: 'डॉक्यूमेंट स्कैनर', title_english: 'Document Scanner' },
-              { icon: 'people', title_hindi: 'वकील से जुड़ें', title_english: 'Connect with Lawyer' },
-              { icon: 'chatbubbles', title_hindi: 'कम्युनिटी Q&A', title_english: 'Community Q&A' },
-              { icon: 'calendar', title_hindi: 'केस ट्रैकर', title_english: 'Case Tracker' },
-            ].map((item, index) => (
-              <View key={index} style={styles.comingSoonItem}>
-                <View style={styles.comingSoonIcon}>
-                  <Ionicons name={`${item.icon}-outline` as any} size={24} color={Colors.saffron} />
-                </View>
-                <Text style={styles.comingSoonText}>
-                  {getText(item.title_hindi, item.title_english)}
-                </Text>
-                <View style={styles.comingSoonBadge}>
-                  <Text style={styles.comingSoonBadgeText}>
-                    {getText('जल्द', 'Soon')}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Menu Items */}
+        {/* Settings Section */}
         <View style={styles.section}>
           <View style={styles.menuList}>
-            {menuItems.map((item, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.menuItem}
-                onPress={item.action}
-              >
-                <View style={styles.menuItemLeft}>
-                  <Ionicons name={`${item.icon}-outline` as any} size={24} color={Colors.textPrimary} />
-                  <Text style={styles.menuItemText}>
-                    {getText(item.title_hindi, item.title_english)}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
-              </TouchableOpacity>
-            ))}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/profile')}
+            >
+              <View style={styles.menuItemLeft}>
+                <Ionicons name="settings-outline" size={24} color={Colors.textPrimary} />
+                <Text style={styles.menuItemText}>
+                  {getText('सेटिंग्स', 'Settings')}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
           </View>
-        </View>
-
-        {/* App Info */}
-        <View style={styles.appInfo}>
-          <View style={styles.appLogo}>
-            <Ionicons name="shield-checkmark" size={32} color={Colors.saffron} />
-          </View>
-          <Text style={styles.appName}>NyayMitra</Text>
-          <Text style={styles.appTagline}>
-            {getText('हर भारतीय का पॉकेट वकील', 'Every Indian\'s Pocket Lawyer')}
-          </Text>
-          <Text style={styles.appVersion}>Version 1.0.0</Text>
-          
-          {/* Tricolor */}
-          <View style={styles.tricolor}>
-            <View style={[styles.colorDot, { backgroundColor: Colors.saffron }]} />
-            <View style={[styles.colorDot, { backgroundColor: Colors.white, borderWidth: 1, borderColor: Colors.border }]} />
-            <View style={[styles.colorDot, { backgroundColor: Colors.green }]} />
-          </View>
-          
-          <Text style={styles.madeIn}>
-            {getText('🇮🇳 भारत में बना', '🇮🇳 Made in India')}
-          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>

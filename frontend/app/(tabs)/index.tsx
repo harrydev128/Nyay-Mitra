@@ -6,13 +6,13 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { rightsAPI } from '../../services/api';
+import { useAppContext } from '../../context/AppContext';
 
 const { width } = Dimensions.get('window');
 
@@ -39,7 +39,7 @@ const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [language, setLanguage] = useState<'hindi' | 'english'>('hindi');
+  const { language, setLanguage } = useAppContext();
   const [categories, setCategories] = useState<RightsCategory[]>([]);
 
   useEffect(() => {
@@ -62,15 +62,15 @@ export default function HomeScreen() {
   const quickActions = [
     {
       icon: 'chatbubbles' as const,
-      title_hindi: 'AI वकील से बात करें',
-      title_english: 'Talk to AI Lawyer',
+      title_hindi: 'AI वकील',
+      title_english: 'AI Lawyer',
       color: Colors.saffron,
       route: '/chat',
     },
     {
       icon: 'shield-checkmark' as const,
-      title_hindi: 'अपने अधिकार जानें',
-      title_english: 'Know Your Rights',
+      title_hindi: 'अधिकार जानें',
+      title_english: 'Know Rights',
       color: Colors.deepBlue,
       route: '/rights',
     },
@@ -83,12 +83,14 @@ export default function HomeScreen() {
     },
     {
       icon: 'call' as const,
-      title_hindi: 'आपातकालीन नंबर',
-      title_english: 'Emergency Numbers',
+      title_hindi: 'हेल्पलाइन',
+      title_english: 'Helplines',
       color: Colors.red,
       route: '/more',
     },
   ];
+
+
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -98,7 +100,7 @@ export default function HomeScreen() {
           <View>
             <Text style={styles.appName}>NyayMitra</Text>
             <Text style={styles.tagline}>
-              {getText('हर भारतीय का पॉकेट वकील', 'Every Indian\'s Pocket Lawyer')}
+              {getText('हर भारतीय का पॉकेट वकील', "Every Indian's Pocket Lawyer")}
             </Text>
           </View>
           <TouchableOpacity
@@ -144,10 +146,10 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Quick Actions */}
+        {/* Quick Actions / Main Sections */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>
-            {getText('त्वरित सेवाएं', 'Quick Services')}
+            {getText('मुख्य सेवाएं', 'Core Services')}
           </Text>
           <View style={styles.quickActionsGrid}>
             {quickActions.map((action, index) => (
@@ -167,10 +169,43 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* Emergency Helplines */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            {getText('आपातकालीन हेल्पलाइन', 'Emergency Helplines')}
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.helplineScroll}
+          >
+            {[
+              { name: getText('पुलिस', 'Police'), number: '112', icon: 'shield' },
+              { name: getText('महिला', 'Women'), number: '181', icon: 'woman' },
+              { name: getText('एम्बुलेंस', 'Ambulance'), number: '108', icon: 'medkit' },
+              { name: getText('कानूनी मदद', 'Legal Aid'), number: '15112', icon: 'call' },
+              { name: getText('चाइल्ड', 'Child'), number: '1098', icon: 'people' },
+              { name: getText('उपभोक्ता', 'Consumer'), number: '1800-11-4000', icon: 'cart' },
+              { name: getText('साइबर', 'Cyber'), number: '1930', icon: 'laptop' },
+              { name: getText('सड़क', 'Road'), number: '1073', icon: 'car' },
+            ].map((helpline, index) => (
+              <TouchableOpacity key={index} style={styles.helplineCard}>
+                <Ionicons
+                  name={`${helpline.icon}-outline` as any}
+                  size={20}
+                  color={Colors.red}
+                />
+                <Text style={styles.helplineNumber}>{helpline.number}</Text>
+                <Text style={styles.helplineName}>{helpline.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         {/* Know Your Rights Preview */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
+            <Text style={styles.sectionTitleNoPadding}>
               {getText('अपने अधिकार जानें', 'Know Your Rights')}
             </Text>
             <TouchableOpacity onPress={() => router.push('/rights')}>
@@ -184,54 +219,39 @@ export default function HomeScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.rightsScroll}
           >
-            {categories.slice(0, 5).map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                style={styles.rightsCard}
-                onPress={() => router.push(`/rights/${category.id}`)}
-              >
-                <View style={[styles.rightsIconBg, { backgroundColor: category.color }]}>
-                  <Ionicons
-                    name={ICON_MAP[category.icon] || 'help-circle-outline'}
-                    size={28}
-                    color={Colors.white}
-                  />
-                </View>
-                <Text style={styles.rightsCardTitle} numberOfLines={2}>
-                  {getText(category.name_hindi, category.name_english)}
+            {categories.length > 0 ? (
+              categories.slice(0, 5).map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={styles.rightsCard}
+                  onPress={() => router.push(`/rights/${category.id}`)}
+                >
+                  <View style={[styles.rightsIconBg, { backgroundColor: category.color }]}>
+                    <Ionicons
+                      name={ICON_MAP[category.icon] || 'help-circle-outline'}
+                      size={28}
+                      color={Colors.white}
+                    />
+                  </View>
+                  <Text style={styles.rightsCardTitle} numberOfLines={2}>
+                    {getText(category.name_hindi, category.name_english)}
+                  </Text>
+                  <Text style={styles.rightsCardDesc} numberOfLines={2}>
+                    {getText(category.description_hindi, category.description_english)}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <View style={styles.placeholderCard}>
+                <Text style={styles.placeholderText}>
+                  {getText('लोड हो रहा है...', 'Loading...')}
                 </Text>
-                <Text style={styles.rightsCardDesc} numberOfLines={2}>
-                  {getText(category.description_hindi, category.description_english)}
-                </Text>
-              </TouchableOpacity>
-            ))}
+              </View>
+            )}
           </ScrollView>
         </View>
 
-        {/* Emergency Helplines */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {getText('आपातकालीन हेल्पलाइन', 'Emergency Helplines')}
-          </Text>
-          <View style={styles.helplineContainer}>
-            {[
-              { name: 'Police', number: '100', icon: 'shield' },
-              { name: 'Women', number: '181', icon: 'woman' },
-              { name: 'Ambulance', number: '108', icon: 'medkit' },
-              { name: 'Legal Aid', number: '15100', icon: 'call' },
-            ].map((helpline, index) => (
-              <TouchableOpacity key={index} style={styles.helplineCard}>
-                <Ionicons
-                  name={`${helpline.icon}-outline` as any}
-                  size={20}
-                  color={Colors.deepBlue}
-                />
-                <Text style={styles.helplineNumber}>{helpline.number}</Text>
-                <Text style={styles.helplineName}>{helpline.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+
 
         {/* Disclaimer */}
         <View style={styles.disclaimer}>
@@ -275,10 +295,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   langText: {
     color: Colors.white,
-    fontWeight: '600',
+    fontWeight: '700',
     fontSize: 14,
   },
   heroSection: {
@@ -293,7 +318,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   heroGradient: {
-    backgroundColor: Colors.saffron,
+    backgroundColor: Colors.deepBlue,
     padding: 24,
   },
   heroContent: {
@@ -315,7 +340,7 @@ const styles = StyleSheet.create({
   heroButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.saffron,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 25,
@@ -324,8 +349,8 @@ const styles = StyleSheet.create({
   },
   heroButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: Colors.saffron,
+    fontWeight: '700',
+    color: Colors.white,
   },
   tricolorStrip: {
     flexDirection: 'row',
@@ -351,6 +376,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 16,
   },
+  sectionTitleNoPadding: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
   seeAllText: {
     fontSize: 14,
     color: Colors.saffron,
@@ -363,7 +393,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   quickActionCard: {
-    width: (width - 56) / 2,
+    width: (width - 48) / 2,
     backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 16,
@@ -383,8 +413,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   quickActionText: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     color: Colors.textPrimary,
     textAlign: 'center',
   },
@@ -393,7 +423,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   rightsCard: {
-    width: 150,
+    width: 160,
     backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 16,
@@ -413,7 +443,7 @@ const styles = StyleSheet.create({
   },
   rightsCardTitle: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: Colors.textPrimary,
     marginBottom: 4,
   },
@@ -422,13 +452,21 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 16,
   },
-  helplineContainer: {
-    flexDirection: 'row',
+  placeholderCard: {
+    width: width - 40,
+    padding: 20,
+    alignItems: 'center',
+  },
+  placeholderText: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+  },
+  helplineScroll: {
     paddingHorizontal: 20,
     gap: 8,
   },
   helplineCard: {
-    flex: 1,
+    width: 112,
     backgroundColor: Colors.white,
     borderRadius: 12,
     padding: 12,
@@ -442,20 +480,68 @@ const styles = StyleSheet.create({
   helplineNumber: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: Colors.deepBlue,
+    color: Colors.red,
     marginTop: 6,
   },
   helplineName: {
     fontSize: 10,
     color: Colors.textSecondary,
     marginTop: 2,
+    fontWeight: '600',
+  },
+  comingSoonGrid: {
+    paddingHorizontal: 20,
+    gap: 10,
+  },
+  comingSoonCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  comingSoonIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  comingSoonContent: {
+    flex: 1,
+  },
+  comingSoonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  comingSoonBadge: {
+    backgroundColor: Colors.background,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  comingSoonBadgeText: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    fontWeight: '600',
   },
   disclaimer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     backgroundColor: Colors.white,
     marginHorizontal: 20,
-    marginBottom: 24,
+    marginBottom: 40,
     padding: 16,
     borderRadius: 12,
     borderLeftWidth: 4,

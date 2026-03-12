@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { rightsAPI } from '../../services/api';
+import { useAppContext } from '../../context/AppContext';
 
 interface RightsCategory {
   id: string;
@@ -37,7 +38,7 @@ const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
 
 export default function RightsScreen() {
   const router = useRouter();
-  const [language, setLanguage] = useState<'hindi' | 'english'>('hindi');
+  const { language, setLanguage } = useAppContext();
   const [categories, setCategories] = useState<RightsCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -92,14 +93,6 @@ export default function RightsScreen() {
             {getText('50+ स्थितियों में आपके कानूनी अधिकार', 'Your legal rights in 50+ situations')}
           </Text>
         </View>
-        <TouchableOpacity
-          style={styles.langToggle}
-          onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')}
-        >
-          <Text style={styles.langText}>
-            {language === 'hindi' ? 'EN' : 'हि'}
-          </Text>
-        </TouchableOpacity>
       </View>
 
       {/* Search Prompt */}
