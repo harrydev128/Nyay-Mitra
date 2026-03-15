@@ -1,557 +1,538 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Dimensions,
+  Linking,
+  Animated,
+  Pressable,
+  Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Colors } from '../../constants/colors';
-import { rightsAPI } from '../../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LightColors, DarkColors } from '../../constants/colors';
 import { useAppContext } from '../../context/AppContext';
+import AdBanner from '../../components/AdBanner';
+import SideDrawer from '../../components/SideDrawer';
 
-const { width } = Dimensions.get('window');
+const NOTIFICATION_STORAGE_KEY = 'notifications';
 
-interface RightsCategory {
-  id: string;
-  name_hindi: string;
-  name_english: string;
-  icon: string;
-  description_hindi: string;
-  description_english: string;
-  color: string;
-}
-
-const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
-  'briefcase': 'briefcase-outline',
-  'shield': 'shield-outline',
-  'car': 'car-outline',
-  'home': 'home-outline',
-  'shopping-cart': 'cart-outline',
-  'building': 'business-outline',
-  'female': 'woman-outline',
-  'landmark': 'document-text-outline',
-};
+const defaultNotifications = [
+  { id: '1', title: '⚖️ नया कानूनी अपडेट', body: 'BNS 2024 लागू - जानें क्या बदला', time: '2 घंटे पहले', read: false, route: '/(tabs)/rights' },
+  { id: '2', title: '📄 दस्तावेज़ तैयार है', body: 'आपका दस्तावेज़ देखने के लिए तैयार है', time: '1 दिन पहले', read: false, route: '/(tabs)/documents' },
+  { id: '3', title: '🎁 Referral bonus मिला!', body: '7 दिन Silver FREE मिला आपके referral से', time: '3 दिन पहले', read: false, route: '/referral' },
+];
 
 export default function HomeScreen() {
+  const { theme, toggleTheme, notificationPanel, setNotificationPanel, toggleNotificationPanel, language, setLanguage, user } = useAppContext();
+  const Colors = theme === 'dark' ? DarkColors : LightColors;
   const router = useRouter();
-  const { language, setLanguage } = useAppContext();
-  const [categories, setCategories] = useState<RightsCategory[]>([]);
+  const isDark = theme === 'dark';
+  const username = user?.name || user?.email?.split('@')[0] || 'User';
+  const pageBg = isDark ? '#0D1B2A' : '#F5F5F5';
+  const cardBg = isDark ? '#1B2B3B' : '#FFFFFF';
+  const textColor = isDark ? '#FFFFFF' : '#1a237e';
+  const subText = isDark ? '#AABBCC' : '#666666';
+  const [drawerVisible, setDrawerVisible] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
-  useEffect(() => {
-    loadCategories();
-  }, []);
+  const slideAnim = useRef(new Animated.Value(-400)).current;
 
-  const loadCategories = async () => {
+  const getText = useCallback((hindi: string, english: string) => language === 'hindi' ? hindi : english, [language]);
+
+  const loadNotifications = async () => {
     try {
-      const data = await rightsAPI.getCategories();
-      setCategories(data);
-    } catch (error) {
-      console.log('Error loading categories:', error);
+      const saved = await AsyncStorage.getItem(NOTIFICATION_STORAGE_KEY);
+      if (saved) {
+        setNotifications(JSON.parse(saved));
+      } else {
+        setNotifications(defaultNotifications);
+      }
+    } catch (e) {
+      if (__DEV__) console.error('Error loading notifications:', e);
+      setNotifications(defaultNotifications);
     }
   };
 
-  const getText = (hindi: string, english: string) => {
-    return language === 'hindi' ? hindi : english;
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  const deleteNotification = async (id: string) => {
+    try {
+      const updated = notifications.filter(n => n.id !== id);
+      setNotifications(updated);
+      await AsyncStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      if (__DEV__) console.error('Error deleting notification:', e);
+    }
   };
 
-  const quickActions = [
-    {
-      icon: 'chatbubbles' as const,
-      title_hindi: 'AI वकील',
-      title_english: 'AI Lawyer',
-      color: Colors.saffron,
-      route: '/chat',
-    },
-    {
-      icon: 'shield-checkmark' as const,
-      title_hindi: 'अधिकार जानें',
-      title_english: 'Know Rights',
-      color: Colors.deepBlue,
-      route: '/rights',
-    },
-    {
-      icon: 'document-text' as const,
-      title_hindi: 'FIR सहायता',
-      title_english: 'FIR Helper',
-      color: Colors.green,
-      route: '/chat',
-    },
-    {
-      icon: 'call' as const,
-      title_hindi: 'हेल्पलाइन',
-      title_english: 'Helplines',
-      color: Colors.red,
-      route: '/more',
-    },
+  const markAllRead = async () => {
+    try {
+      const updated = notifications.map(n => ({ ...n, read: true }));
+      setNotifications(updated);
+      await AsyncStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updated));
+    } catch (e) {
+      if (__DEV__) console.error('Error marking all read:', e);
+    }
+  };
+
+  const handleNotificationPress = async (notification: any) => {
+    try {
+      setNotificationPanel(false); // close panel
+      const updated = notifications.map(n => n.id === notification.id ? { ...n, read: true } : n);
+      setNotifications(updated);
+      await AsyncStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updated));
+      router.push(notification.route as any); // navigate
+    } catch (e) {
+      if (__DEV__) console.error('Error handling notification press:', e);
+      router.push(notification.route as any);
+    }
+  };
+
+  const notificationCount = notifications.filter(n => !n.read).length;
+
+  const helplines = [
+    { num: '112', label: language === 'hi'?'पुलिस':'Police' },
+    { num: '181', label: language === 'hi'?'महिला':'Women' },
+    { num: '108', label: language === 'hi'?'एम्बुलेंस':'Ambulance' },
+    { num: '1930', label: language === 'hi'?'साइबर':'Cyber' },
+    { num: '15100', label: language === 'hi'?'कानूनी':'Legal Aid' },
+    { num: '1098', label: language === 'hi'?'बाल':'Child' },
   ];
 
+  useEffect(() => {
+    Animated.timing(slideAnim, {
+      toValue: notificationPanel ? 0 : -400,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, [notificationPanel, slideAnim]);
+
+  const callNumber = useCallback((number: string) => {
+    try {
+      Linking.openURL(`tel:${number}`);
+    } catch (e) {
+      if (__DEV__) console.error('Error calling number:', e);
+    }
+  }, []);
 
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header with Language Toggle */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.appName}>NyayMitra</Text>
-            <Text style={styles.tagline}>
-              {getText('हर भारतीय का पॉकेट वकील', "Every Indian's Pocket Lawyer")}
+    <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]} edges={['top']}>
+      {notificationPanel && (
+        <Pressable style={styles.overlay} onPress={() => setNotificationPanel(false)} />
+      )}
+
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: Colors.cardBackground, borderBottomColor: Colors.border, zIndex: 1001 }]}>
+        <TouchableOpacity style={styles.hamburgerBtn} onPress={() => setDrawerVisible(true)}>
+          <Ionicons name="menu" size={28} color={Colors.deepBlue} />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={[styles.appName, { color: Colors.deepBlue }]}>NyayMitra ⚖️</Text>
+        </View>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={{ marginRight: 16 }} onPress={toggleTheme}>
+            <Text style={{ fontSize: 22 }}>{theme === 'dark' ? '🌙' : '☀️'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.langToggle, { backgroundColor: Colors.deepBlue }]} onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')}>
+            <Text style={styles.langText}>{language === 'hindi' ? 'EN' : 'हि'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.bellBtn} onPress={toggleNotificationPanel}>
+            <Ionicons name="notifications-outline" size={24} color={Colors.deepBlue} />
+            {notificationCount > 0 && (
+              <View style={[styles.notifBadge, { backgroundColor: Colors.red }]}>
+                <Text style={styles.notifCount}>{notificationCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Notification Panel */}
+      <Animated.View style={[styles.notifPanel, { backgroundColor: Colors.cardBackground, transform: [{ translateY: slideAnim }] }]}>
+        <View style={[styles.notifHeader, { borderBottomColor: Colors.border }]}>
+          <Text style={[styles.notifTitle, { color: Colors.textPrimary }]}>{getText('सूचनाएं', 'Notifications')}</Text>
+          <TouchableOpacity onPress={markAllRead}>
+            <Text style={[styles.markReadText, { color: Colors.lightBlue }]}>{getText('सभी पढ़ें', 'Mark all read')}</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView style={{ maxHeight: 300 }}>
+          {notifications.map((notification) => (
+            <NotificationItem
+              key={notification.id}
+              notification={notification}
+              Colors={Colors}
+              onPress={() => handleNotificationPress(notification)}
+              onDelete={() => deleteNotification(notification.id)}
+            />
+          ))}
+          {notifications.length === 0 && (
+            <View style={{ padding: 20, alignItems: 'center' }}>
+              <Text style={{ color: Colors.textSecondary }}>{getText('कोई सूचना नहीं', 'No notifications')}</Text>
+            </View>
+          )}
+        </ScrollView>
+      </Animated.View>
+
+      <ScrollView style={{ flex: 1, backgroundColor: pageBg }} showsVerticalScrollIndicator={false}>
+        {/* 1. Welcome Card */}
+        <View style={{
+          flexDirection: 'row',
+          backgroundColor: '#1a237e',
+          margin: 16,
+          borderRadius: 20,
+          padding: 20,
+          alignItems: 'center',
+          elevation: 4,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.2,
+          shadowRadius: 8,
+        }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 4 }}>
+              {language === 'hi' ? `नमस्ते, ${username}! 👋` : `Hello, ${username}! 👋`}
+            </Text>
+            <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginBottom: 14 }}>
+              {language === 'hi' ? 'आज आपकी कैसे मदद करें?' : 'How can we help today?'}
+            </Text>
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: '#FF6B00',
+                paddingHorizontal: 18,
+                paddingVertical: 10,
+                borderRadius: 20,
+                alignSelf: 'flex-start',
+                gap: 6,
+              }}
+              onPress={() => router.push('/emergency')}
+            >
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>
+                {language === 'hi' ? '🆘 अभी मदद लें' : '🆘 Get Help Now'}
+              </Text>
+              <Ionicons name="arrow-forward" size={18} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          <Text style={{ fontSize: 48, marginLeft: 12 }}>⚖️</Text>
+        </View>
+
+        {/* 2. Emergency Banner */}
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#CC0000',
+            marginHorizontal: 16,
+            borderRadius: 12,
+            padding: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            marginBottom: 8,
+          }}
+          onPress={() => router.push('/emergency')}
+        >
+          <Text style={{ fontSize: 32, marginRight: 12 }}>🆘</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}>
+              {language === 'hi' ? 'आपातकालीन मदद' : 'Emergency Help'}
+            </Text>
+            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)' }}>
+              {language === 'hi' ? 'पुलिस • घर से निकाला • धोखाधड़ी • मार-पीट' : 'Police • Eviction • Fraud • Assault'}
             </Text>
           </View>
+          <Text style={{ fontSize: 24, color: '#fff', fontWeight: 'bold' }}>›</Text>
+        </TouchableOpacity>
+
+        {/* 3. Section Header */}
+        <Text style={{ fontSize: 15, fontWeight: 'bold', color: textColor, paddingHorizontal: 20, marginBottom: 14 }}>
+          {language === 'hi' ? 'मुख्य सेवाएं' : 'Core Services'}
+        </Text>
+
+        {/* 4. Main Features Grid */}
+        <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 20 }}>
+          {/* AI Vakeel */}
           <TouchableOpacity
-            style={styles.langToggle}
-            onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')}
+            style={{
+              backgroundColor: cardBg,
+              borderRadius: 12,
+              padding: 14,
+              alignItems: 'center',
+              borderWidth: 0.5,
+              borderColor: isDark ? '#2A3F55' : '#E0E0E0',
+              flex: 1,
+            }}
+            onPress={() => router.push('/(tabs)/chat')}
           >
-            <Text style={styles.langText}>
-              {language === 'hindi' ? 'EN' : 'हि'}
+            <Text style={{ fontSize: 28, marginBottom: 6 }}>⚖️</Text>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: textColor, textAlign: 'center' }}>
+              {language === 'hi' ? 'AI वकील' : 'AI Lawyer'}
+            </Text>
+            <Text style={{ fontSize: 10, color: subText, textAlign: 'center', marginTop: 2 }}>
+              {language === 'hi' ? 'कानूनी सवाल पूछें' : 'Ask legal questions'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Rights */}
+          <TouchableOpacity
+            style={{
+              backgroundColor: cardBg,
+              borderRadius: 12,
+              padding: 14,
+              alignItems: 'center',
+              borderWidth: 0.5,
+              borderColor: isDark ? '#2A3F55' : '#E0E0E0',
+              flex: 1,
+            }}
+            onPress={() => router.push('/(tabs)/rights')}
+          >
+            <Text style={{ fontSize: 28, marginBottom: 6 }}>📋</Text>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: textColor, textAlign: 'center' }}>
+              {language === 'hi' ? 'अधिकार जानें' : 'Know Rights'}
+            </Text>
+            <Text style={{ fontSize: 10, color: subText, textAlign: 'center', marginTop: 2 }}>
+              {language === 'hi' ? '40+ कानूनी अधिकार' : '40+ legal rights'}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Hero Section */}
-        <View style={styles.heroSection}>
-          <View style={styles.heroGradient}>
-            <View style={styles.heroContent}>
-              <Ionicons name="shield-checkmark" size={48} color={Colors.white} />
-              <Text style={styles.heroTitle}>
-                {getText('कानूनी मदद अब आपकी जेब में', 'Legal Help Now In Your Pocket')}
-              </Text>
-              <Text style={styles.heroSubtitle}>
-                {getText(
-                  '24/7 AI कानूनी सहायक • हिंदी में बात करें',
-                  '24/7 AI Legal Assistant • Talk in Hindi'
-                )}
-              </Text>
-              <TouchableOpacity
-                style={styles.heroButton}
-                onPress={() => router.push('/chat')}
-              >
-                <Text style={styles.heroButtonText}>
-                  {getText('अभी मदद लें', 'Get Help Now')}
-                </Text>
-                <Ionicons name="arrow-forward" size={20} color={Colors.saffron} />
-              </TouchableOpacity>
-            </View>
-          </View>
-          {/* Tricolor Strip */}
-          <View style={styles.tricolorStrip}>
-            <View style={[styles.colorBar, { backgroundColor: Colors.saffron }]} />
-            <View style={[styles.colorBar, { backgroundColor: Colors.white }]} />
-            <View style={[styles.colorBar, { backgroundColor: Colors.green }]} />
-          </View>
-        </View>
-
-        {/* Quick Actions / Main Sections */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {getText('मुख्य सेवाएं', 'Core Services')}
-          </Text>
-          <View style={styles.quickActionsGrid}>
-            {quickActions.map((action, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.quickActionCard}
-                onPress={() => router.push(action.route as any)}
-              >
-                <View style={[styles.quickActionIcon, { backgroundColor: action.color }]}>
-                  <Ionicons name={action.icon} size={24} color={Colors.white} />
-                </View>
-                <Text style={styles.quickActionText} numberOfLines={2}>
-                  {getText(action.title_hindi, action.title_english)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Emergency Helplines */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            {getText('आपातकालीन हेल्पलाइन', 'Emergency Helplines')}
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.helplineScroll}
+        <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 20 }}>
+          {/* Documents */}
+          <TouchableOpacity
+            style={{
+              backgroundColor: cardBg,
+              borderRadius: 12,
+              padding: 14,
+              alignItems: 'center',
+              borderWidth: 0.5,
+              borderColor: isDark ? '#2A3F55' : '#E0E0E0',
+              flex: 1,
+            }}
+            onPress={() => router.push('/(tabs)/documents')}
           >
-            {[
-              { name: getText('पुलिस', 'Police'), number: '112', icon: 'shield' },
-              { name: getText('महिला', 'Women'), number: '181', icon: 'woman' },
-              { name: getText('एम्बुलेंस', 'Ambulance'), number: '108', icon: 'medkit' },
-              { name: getText('कानूनी मदद', 'Legal Aid'), number: '15112', icon: 'call' },
-              { name: getText('चाइल्ड', 'Child'), number: '1098', icon: 'people' },
-              { name: getText('उपभोक्ता', 'Consumer'), number: '1800-11-4000', icon: 'cart' },
-              { name: getText('साइबर', 'Cyber'), number: '1930', icon: 'laptop' },
-              { name: getText('सड़क', 'Road'), number: '1073', icon: 'car' },
-            ].map((helpline, index) => (
-              <TouchableOpacity key={index} style={styles.helplineCard}>
-                <Ionicons
-                  name={`${helpline.icon}-outline` as any}
-                  size={20}
-                  color={Colors.red}
-                />
-                <Text style={styles.helplineNumber}>{helpline.number}</Text>
-                <Text style={styles.helplineName}>{helpline.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+            <Text style={{ fontSize: 28, marginBottom: 6 }}>📄</Text>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: textColor, textAlign: 'center' }}>
+              {language === 'hi' ? 'दस्तावेज़ बनाएं' : 'Make Document'}
+            </Text>
+            <Text style={{ fontSize: 10, color: subText, textAlign: 'center', marginTop: 2 }}>
+              {language === 'hi' ? 'FIR, नोटिस, शिकायत' : 'FIR, Notice, Complaint'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Court Tracker */}
+          <TouchableOpacity
+            style={{
+              backgroundColor: cardBg,
+              borderRadius: 12,
+              padding: 14,
+              alignItems: 'center',
+              borderWidth: 0.5,
+              borderColor: isDark ? '#2A3F55' : '#E0E0E0',
+              flex: 1,
+              position: 'relative',
+            }}
+            onPress={() => alert(language === 'hi' ? 'जल्द आ रहा है!' : 'Coming Soon!')}
+          >
+            <View style={{
+              position: 'absolute',
+              top: 6, right: 6,
+              backgroundColor: '#FF6B00',
+              borderRadius: 4,
+              paddingHorizontal: 4,
+              paddingVertical: 2,
+            }}>
+              <Text style={{ color: 'white', fontSize: 8, fontWeight: 'bold' }}>NEW</Text>
+            </View>
+            <Text style={{ fontSize: 28, marginBottom: 6 }}>🏛️</Text>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: textColor, textAlign: 'center' }}>
+              {language === 'hi' ? 'कोर्ट तारीख' : 'Court Date'}
+            </Text>
+            <Text style={{ fontSize: 10, color: subText, textAlign: 'center', marginTop: 2 }}>
+              {language === 'hi' ? 'अगली तारीख जानें' : 'Track your case'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Know Your Rights Preview */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitleNoPadding}>
-              {getText('अपने अधिकार जानें', 'Know Your Rights')}
-            </Text>
-            <TouchableOpacity onPress={() => router.push('/rights')}>
-              <Text style={styles.seeAllText}>
-                {getText('सभी देखें', 'See All')}
+        {/* 5. Section Header */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 14 }}>
+          <Text style={{ fontSize: 15, fontWeight: 'bold', color: textColor }}>
+            {language === 'hi' ? 'नए फीचर्स' : 'New Features'}
+          </Text>
+          <View style={{
+            backgroundColor: '#FF6B00',
+            borderRadius: 8,
+            paddingHorizontal: 6,
+            paddingVertical: 2,
+            marginLeft: 8,
+          }}>
+            <Text style={{ color: 'white', fontSize: 9, fontWeight: 'bold' }}>NEW</Text>
+          </View>
+        </View>
+
+        {/* 6. New Features Row */}
+        <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 20 }}>
+          {[
+            { icon: '🏠', title: language === 'hi' ? 'किराया\nसमझौता' : 'Rent\nAgreement' },
+            { icon: '💰', title: language === 'hi' ? 'वेतन\nकैलकुलेटर' : 'Salary\nCalculator' },
+            { icon: '🛡️', title: language === 'hi' ? 'सरकारी\nयोजनाएं' : 'Govt\nSchemes' },
+          ].map((feature, index) => (
+            <TouchableOpacity
+              key={index}
+              style={{
+                backgroundColor: cardBg,
+                borderRadius: 12,
+                padding: 10,
+                alignItems: 'center',
+                borderWidth: 0.5,
+                borderColor: isDark ? '#2A3F55' : '#E0E0E0',
+                flex: 1,
+                position: 'relative',
+              }}
+              onPress={() => alert(language === 'hi' ? 'जल्द आ रहा है!' : 'Coming Soon!')}
+            >
+              <View style={{
+                position: 'absolute',
+                top: 4, right: 4,
+                backgroundColor: '#FF6B00',
+                borderRadius: 3,
+                paddingHorizontal: 3,
+                paddingVertical: 1,
+              }}>
+                <Text style={{ color: 'white', fontSize: 7, fontWeight: 'bold' }}>NEW</Text>
+              </View>
+              <Text style={{ fontSize: 20, marginBottom: 4 }}>{feature.icon}</Text>
+              <Text style={{ fontSize: 11, color: textColor, textAlign: 'center', fontWeight: '500' }}>
+                {feature.title}
               </Text>
             </TouchableOpacity>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.rightsScroll}
-          >
-            {categories.length > 0 ? (
-              categories.slice(0, 5).map((category) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={styles.rightsCard}
-                  onPress={() => router.push(`/rights/${category.id}`)}
-                >
-                  <View style={[styles.rightsIconBg, { backgroundColor: category.color }]}>
-                    <Ionicons
-                      name={ICON_MAP[category.icon] || 'help-circle-outline'}
-                      size={28}
-                      color={Colors.white}
-                    />
-                  </View>
-                  <Text style={styles.rightsCardTitle} numberOfLines={2}>
-                    {getText(category.name_hindi, category.name_english)}
-                  </Text>
-                  <Text style={styles.rightsCardDesc} numberOfLines={2}>
-                    {getText(category.description_hindi, category.description_english)}
-                  </Text>
-                </TouchableOpacity>
-              ))
-            ) : (
-              <View style={styles.placeholderCard}>
-                <Text style={styles.placeholderText}>
-                  {getText('लोड हो रहा है...', 'Loading...')}
-                </Text>
-              </View>
-            )}
-          </ScrollView>
+          ))}
         </View>
 
+        {/* 7. Section Header */}
+        <Text style={{ fontSize: 15, fontWeight: 'bold', color: textColor, paddingHorizontal: 20, marginBottom: 14 }}>
+          {language === 'hi' ? 'आपातकालीन हेल्पलाइन' : 'Emergency Helplines'}
+        </Text>
 
+        {/* 8. Helplines Horizontal Scroll */}
+        <ScrollView
+          horizontal={true}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 8, marginBottom: 20 }}
+        >
+          {helplines.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={{
+                backgroundColor: cardBg,
+                borderWidth: 0.5,
+                borderColor: isDark ? '#2A3F55' : '#E0E0E0',
+                borderRadius: 8,
+                padding: 6,
+                paddingHorizontal: 10,
+                alignItems: 'center',
+              }}
+              onPress={() => Linking.openURL('tel:' + item.num)}
+            >
+              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#CC0000' }}>{item.num}</Text>
+              <Text style={{ fontSize: 10, color: subText }}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
-        {/* Disclaimer */}
-        <View style={styles.disclaimer}>
-          <Ionicons name="information-circle-outline" size={16} color={Colors.textSecondary} />
-          <Text style={styles.disclaimerText}>
-            {getText(
-              'यह ऐप सामान्य कानूनी जानकारी प्रदान करता है। गंभीर मामलों में वकील से सलाह लें।',
-              'This app provides general legal information. Consult a lawyer for serious matters.'
-            )}
+        {/* 9. Success Stories (placeholder) */}
+        <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
+          <Text style={{ fontSize: 15, fontWeight: 'bold', color: textColor, marginBottom: 14 }}>
+            {language === 'hi' ? 'सफलता की कहानियां' : 'Success Stories'}
           </Text>
+          <View style={{
+            backgroundColor: cardBg,
+            borderRadius: 12,
+            padding: 16,
+            borderWidth: 0.5,
+            borderColor: isDark ? '#2A3F55' : '#E0E0E0',
+            alignItems: 'center',
+          }}>
+            <Text style={{ fontSize: 14, color: subText, textAlign: 'center' }}>
+              {language === 'hi' ? 'जल्द ही आ रहा है...' : 'Coming soon...'}
+            </Text>
+          </View>
         </View>
+
+        {/* 10. Bottom Padding */}
+        <View style={{ height: 80 }} />
       </ScrollView>
+      <AdBanner />
+      <SideDrawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
     </SafeAreaView>
   );
 }
 
+const NotificationItem = React.memo(({ notification, Colors, onPress, onDelete }: any) => (
+  <View style={[styles.notifItem, { borderBottomColor: Colors.border, backgroundColor: notification.read ? 'transparent' : Colors.background + '40' }]}>
+    <TouchableOpacity style={styles.notifContent} onPress={onPress}>
+      <View style={[styles.notifIconContainer, { backgroundColor: Colors.background }]}>
+        <Ionicons name={notification.icon || 'notifications-outline'} size={20} color={Colors.saffron} />
+      </View>
+      <View style={styles.notifTextContainer}>
+        <Text style={[styles.notifItemTitle, { color: Colors.textPrimary, fontWeight: notification.read ? '400' : '700' }]}>{notification.title}</Text>
+        <Text style={[styles.notifItemBody, { color: Colors.textSecondary }]} numberOfLines={1}>{notification.body}</Text>
+        <Text style={[styles.notifItemTime, { color: Colors.textLight, fontSize: 10 }]}>{notification.time}</Text>
+      </View>
+    </TouchableOpacity>
+    <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
+      <Ionicons name="close-circle-outline" size={20} color={Colors.textLight} />
+    </TouchableOpacity>
+  </View>
+));
+NotificationItem.displayName = 'NotificationItem';
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  appName: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: Colors.deepBlue,
-  },
-  tagline: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
-  langToggle: {
-    backgroundColor: Colors.deepBlue,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-  },
-  langText: {
-    color: Colors.white,
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  heroSection: {
-    marginHorizontal: 20,
-    marginBottom: 24,
-    borderRadius: 20,
-    overflow: 'hidden',
-    elevation: 4,
-    shadowColor: Colors.saffron,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  heroGradient: {
-    backgroundColor: Colors.deepBlue,
-    padding: 24,
-  },
-  heroContent: {
-    alignItems: 'center',
-  },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: Colors.white,
-    textAlign: 'center',
-    marginTop: 12,
-  },
-  heroSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  heroButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.saffron,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 25,
-    marginTop: 20,
-    gap: 8,
-  },
-  heroButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.white,
-  },
-  tricolorStrip: {
-    flexDirection: 'row',
-    height: 6,
-  },
-  colorBar: {
-    flex: 1,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  sectionTitleNoPadding: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  seeAllText: {
-    fontSize: 14,
-    color: Colors.saffron,
-    fontWeight: '600',
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 12,
-    gap: 8,
-  },
-  quickActionCard: {
-    width: (width - 48) / 2,
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  quickActionText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    textAlign: 'center',
-  },
-  rightsScroll: {
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  rightsCard: {
-    width: 160,
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  rightsIconBg: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  rightsCardTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  rightsCardDesc: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    lineHeight: 16,
-  },
-  placeholderCard: {
-    width: width - 40,
-    padding: 20,
-    alignItems: 'center',
-  },
-  placeholderText: {
-    color: Colors.textSecondary,
-    fontSize: 14,
-  },
-  helplineScroll: {
-    paddingHorizontal: 20,
-    gap: 8,
-  },
-  helplineCard: {
-    width: 112,
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  helplineNumber: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.red,
-    marginTop: 6,
-  },
-  helplineName: {
-    fontSize: 10,
-    color: Colors.textSecondary,
-    marginTop: 2,
-    fontWeight: '600',
-  },
-  comingSoonGrid: {
-    paddingHorizontal: 20,
-    gap: 10,
-  },
-  comingSoonCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  comingSoonIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  comingSoonContent: {
-    flex: 1,
-  },
-  comingSoonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-  comingSoonBadge: {
-    backgroundColor: Colors.background,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  comingSoonBadgeText: {
-    fontSize: 10,
-    color: Colors.textSecondary,
-    fontWeight: '600',
-  },
-  disclaimer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: Colors.white,
-    marginHorizontal: 20,
-    marginBottom: 40,
-    padding: 16,
-    borderRadius: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: Colors.saffron,
-    gap: 8,
-  },
-  disclaimerText: {
-    flex: 1,
-    fontSize: 12,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
+  hamburgerBtn: { padding: 4 },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  appName: { fontSize: 22, fontWeight: 'bold' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  langToggle: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
+  langText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+  bellBtn: { padding: 4, position: 'relative' },
+  notifBadge: { position: 'absolute', top: 0, right: 0, borderRadius: 8, minWidth: 16, height: 16, justifyContent: 'center', alignItems: 'center' },
+  notifCount: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000 },
+  notifPanel: { position: 'absolute', top: 70, left: 10, right: 10, borderRadius: 16, padding: 16, zIndex: 1002, elevation: 10, ...Platform.select({ web: { boxShadow: '0px 5px 15px rgba(0,0,0,0.3)' }, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, shadowRadius: 10 } }) },
+  notifHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottomWidth: 1, paddingBottom: 10 },
+  notifTitle: { fontSize: 18, fontWeight: 'bold' },
+  markReadText: { fontSize: 14, fontWeight: '600' },
+  notifList: { gap: 12 },
+  notifItem: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, paddingVertical: 12 },
+  notifContent: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  notifIconContainer: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  notifTextContainer: { flex: 1 },
+  notifItemTitle: { fontSize: 14, marginBottom: 2 },
+  notifItemBody: { fontSize: 12, marginBottom: 4 },
+  notifItemTime: { fontSize: 11 },
+  deleteBtn: { padding: 8, marginLeft: 8 },
+  notifDot: { width: 8, height: 8, borderRadius: 4, marginLeft: 8 },
+  greetingCard: { flexDirection: 'row', margin: 16, borderRadius: 20, padding: 20, alignItems: 'center', elevation: 4, ...Platform.select({ web: { boxShadow: '0px 4px 12px rgba(0,0,0,0.1)' }, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 } }) },
+  greetingContent: { flex: 1 },
+  greetingText: { fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 4 },
+  greetingSub: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginBottom: 14 },
+  problemBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 20, alignSelf: 'flex-start', gap: 6 },
+  problemBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  greetingEmoji: { fontSize: 48, marginLeft: 12 },
+  section: { marginBottom: 20 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', paddingHorizontal: 20, marginBottom: 14 },
+  quickActionsGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 12 },
+  helplineScroll: { paddingHorizontal: 20, gap: 10 },
+  quickSolScroll: { paddingHorizontal: 20, gap: 12 },
+  disclaimer: { flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 20, alignItems: 'center', gap: 8, opacity: 0.7 },
+  disclaimerText: { fontSize: 12, fontStyle: 'italic' },
 });
+

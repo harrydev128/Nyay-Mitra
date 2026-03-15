@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -8,408 +8,245 @@ import {
     ActivityIndicator,
     Alert,
     Image,
+    Share,
+    Linking,
+    Platform,
+    Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { LightColors, DarkColors } from '../constants/colors';
 import { useRouter } from 'expo-router';
 import { useAppContext } from '../context/AppContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
-import api from '../services/api';
+import * as FileSystem from 'expo-file-system/legacy';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Clipboard from 'expo-clipboard';
 
 export default function DocScannerScreen() {
+    const { theme, toggleTheme } = useAppContext();
+    const Colors = theme === 'dark' ? DarkColors : LightColors;
+    const styles = getStyles(Colors, theme);
+    const isDark = theme === 'dark';
+
+    // Dark mode color variables
+    const textPrimary = isDark ? '#FFFFFF' : '#1a237e';
+    const textSecondary = isDark ? '#CCCCCC' : '#555555';
+    const cardBg = isDark ? '#243447' : '#FFFFFF';
+    const pageBg = isDark ? '#0D1B2A' : '#F5F5F5';
+    const dividerColor = isDark ? '#2A3F55' : '#E0E0E0';
+
     const router = useRouter();
-    const { language, setLanguage, isPremium } = useAppContext();
-    const [isScanning, setIsScanning] = useState(false);
-    const [scanResult, setScanResult] = useState<string | null>(null);
-    const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
-    const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+    const { language } = useAppContext();
+    const [loading, setLoading] = useState(false);
+    const [analysis, setAnalysis] = useState<string | null>(null);
+    const [previewUri, setPreviewUri] = useState<string | null>(null);
+    const [selectedFile, setSelectedFile] = useState<{ name: string; type: string } | null>(null);
 
-    const getText = (hindi: string, english: string) => {
-        return language === 'hindi' ? hindi : english;
-    };
+    const getText = (hindi: string, english: string) => language === 'hindi' ? hindi : english;
 
-    const ensurePremium = () => {
-        if (!isPremium) {
-            Alert.alert(
-                getText('प्रीमियम फीचर', 'Premium Feature'),
-                getText(
-                    'डॉक्यूमेंट स्कैनर का उपयोग करने के लिए कृपया प्रीमियम में अपग्रेड करें।',
-                    'Please upgrade to Premium to use the Document Scanner.'
-                ),
-                [{ text: getText('अभी अपग्रेड करें', 'Upgrade Now'), onPress: () => router.push('/profile') }, { text: getText('ठीक है', 'OK') }]
-            );
-            return false;
-        }
-        return true;
-    };
-
-    const analyzeImage = async (base64Data: string, filename: string) => {
+    const handleCamera = async () => {
         try {
-            setIsScanning(true);
-            setScanResult(null);
-
-            const response = await api.post('scan-document', {
-                image_base64: base64Data,
-                filename,
-            });
-
-            const analysis = response.data?.analysis as string;
-            setScanResult(analysis);
-        } catch (error: any) {
-            console.log('Scan document error:', error?.response || error);
-            Alert.alert(
-                getText('त्रुटि', 'Error'),
-                getText(
-                    'दस्तावेज़ का विश्लेषण नहीं हो सका। कृपया बाद में पुनः प्रयास करें।',
-                    'Unable to analyze document. Please try again later.'
-                )
-            );
-        } finally {
-            setIsScanning(false);
-        }
-    };
-
-    const handleCameraScan = async () => {
-        if (!ensurePremium()) return;
-
-        const { status } = await ImagePicker.requestCameraPermissionsAsync();
-        if (status !== 'granted') {
-            Alert.alert(
-                getText('अनुमति आवश्यक', 'Permission Required'),
-                getText(
-                    'कैमरा से स्कैन करने के लिए कैमरा अनुमति दें।',
-                    'Please allow camera access to scan documents.'
-                )
-            );
-            return;
-        }
-
-        const result = await ImagePicker.launchCameraAsync({
-            quality: 0.8,
-            base64: true,
-        });
-
-        if (result.canceled || !result.assets?.[0]) {
-            return;
-        }
-
-        const asset = result.assets[0];
-        if (!asset.base64) {
-            Alert.alert(
-                getText('त्रुटि', 'Error'),
-                getText('छवि डेटा नहीं मिल पाया।', 'Could not read image data.')
-            );
-            return;
-        }
-
-        setSelectedImageUri(asset.uri);
-        setSelectedFileName('camera-document.jpg');
-        await analyzeImage(asset.base64, 'camera-document.jpg');
-    };
-
-    const handleFileUpload = async () => {
-        if (!ensurePremium()) return;
-
-        const imageResult = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            quality: 0.8,
-            base64: true,
-        });
-
-        if (!imageResult.canceled && imageResult.assets?.[0]) {
-            const asset = imageResult.assets[0];
-            if (!asset.base64) {
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+            if (status !== 'granted') {
                 Alert.alert(
-                    getText('त्रुटि', 'Error'),
-                    getText('छवि डेटा नहीं मिल पाया।', 'Could not read image data.')
+                    getText('अनुमति आवश्यक', 'Permission Required'),
+                    getText('दस्तावेजों को स्कैन करने के लिए कैमरा एक्सेस की आवश्यकता है', 'Camera access needed to scan documents'),
+                    [{ text: 'Cancel' }, { text: 'Settings', onPress: () => Linking.openSettings() }]
                 );
                 return;
             }
-            setSelectedImageUri(asset.uri);
-            setSelectedFileName(asset.fileName || 'gallery-document.jpg');
-            await analyzeImage(asset.base64, asset.fileName || 'gallery-document.jpg');
-            return;
-        }
-
-        const docResult = await DocumentPicker.getDocumentAsync({
-            type: ['application/pdf', 'image/*'],
-            copyToCacheDirectory: true,
-        });
-
-        if (docResult.canceled || !docResult.assets?.[0]) {
-            return;
-        }
-
-        const doc = docResult.assets[0];
-
-        try {
-            const base64Data = await FileSystem.readAsStringAsync(doc.uri, {
-                encoding: FileSystem.EncodingType.Base64,
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                quality: 0.8,
+                base64: true,
+                allowsEditing: true,
             });
-            setSelectedImageUri(doc.mimeType?.startsWith('image/') ? doc.uri : null);
-            setSelectedFileName(doc.name || 'document.pdf');
-            await analyzeImage(base64Data, doc.name || 'document.pdf');
-        } catch (e) {
-            console.log('File base64 read error:', e);
-            Alert.alert(
-                getText('त्रुटि', 'Error'),
-                getText('फ़ाइल पढ़ने में समस्या आई।', 'There was a problem reading the file.')
-            );
+            if (!result.canceled && result.assets[0]) {
+                const asset = result.assets[0];
+                setSelectedFile({ name: 'camera_scan.jpg', type: 'image/jpeg' });
+                setPreviewUri(asset.uri);
+                await analyzeDocument(asset.base64 || '', 'image/jpeg');
+            }
+        } catch (error: any) {
+            Alert.alert('Error', 'Camera failed: ' + error.message);
         }
     };
 
+    const handleUpload = async () => {
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: ['image/*', 'application/pdf'],
+                copyToCacheDirectory: true,
+            });
+            if (!result.canceled && result.assets[0]) {
+                const file = result.assets[0];
+                setSelectedFile({ name: file.name, type: file.mimeType || 'application/octet-stream' });
+                setPreviewUri(file.uri);
+                const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: 'base64' });
+                await analyzeDocument(base64, file.mimeType || 'image/jpeg');
+            }
+        } catch (error: any) {
+            Alert.alert('Error', 'Upload failed: ' + error.message);
+        }
+    };
+
+    const analyzeDocument = async (base64: string, mimeType: string) => {
+        setLoading(true);
+        setAnalysis(null);
+        try {
+            const response = await fetch('http://localhost:8001/api/analyze-document', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ file_data: base64, file_type: mimeType, language: language }),
+            });
+            if (!response.ok) throw new Error('Server error: ' + response.status);
+            const data = await response.json();
+            setAnalysis(data.analysis);
+
+            try {
+                const existingDocs = await AsyncStorage.getItem('generated_docs');
+                const docs = existingDocs ? JSON.parse(existingDocs) : [];
+                docs.push({
+                    id: `scan_${Date.now()}`,
+                    type: getText('स्कैन विश्लेषण', 'Scan Analysis'),
+                    title: getText('दस्तावेज़ विश्लेषण', 'Document Analysis'),
+                    content: data.analysis || '',
+                    createdAt: new Date().toISOString(),
+                });
+                await AsyncStorage.setItem('generated_docs', JSON.stringify(docs));
+            } catch { }
+        } catch (error: any) {
+            Alert.alert(getText('विश्लेषण विफल', 'Analysis Failed'), getText('कृपया दोबारा कोशिश करें: ', 'Please try again: ') + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCopy = useCallback(() => {
+        if (!analysis) return;
+        Clipboard.setStringAsync(analysis);
+        Alert.alert(getText('कॉपी हो गया!', 'Copied!'));
+    }, [analysis, language]);
+
+    const handleShare = async () => {
+        if (!analysis) return;
+        try {
+            await Share.share({ message: analysis });
+        } catch { }
+    };
+
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
+        <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
+            <View style={[styles.header, { backgroundColor: cardBg, borderBottomColor: dividerColor }]}>
                 <TouchableOpacity onPress={() => router.back()}>
-                    <Ionicons name="arrow-back" size={24} color={Colors.deepBlue} />
+                    <Ionicons name="arrow-back" size={24} color={textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>{getText('डॉक्यूमेंट स्कैनर', 'Doc Scanner')}</Text>
+                <Text style={[styles.headerTitle, { color: textPrimary }]}>{getText('दस्तावेज़ विश्लेषण', 'Document Analysis')}</Text>
+                <TouchableOpacity style={{ marginRight: 16 }} onPress={toggleTheme}>
+                    <Text style={{ fontSize: 22 }}>{theme === 'dark' ? '🌙' : '☀️'}</Text>
+                </TouchableOpacity>
             </View>
 
-            <View style={styles.content}>
-                <View style={styles.buttonRow}>
-                    <TouchableOpacity style={styles.topButton} onPress={handleCameraScan}>
-                        <Text style={styles.topButtonText}>📷 {getText('कैमरा से स्कैन करें', 'Scan with Camera')}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.topButtonSecondary} onPress={handleFileUpload}>
-                        <Text style={styles.topButtonText}>📁 {getText('फ़ाइल अपलोड करें', 'Upload File')}</Text>
-                    </TouchableOpacity>
-                </View>
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+                {!loading && !analysis && (
+                    <View style={styles.buttonContainer}>
+                        <Pressable
+                            style={({ pressed }) => [styles.cameraButton, { backgroundColor: Colors.saffron }, pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }]}
+                            onPress={handleCamera}
+                        >
+                            <Ionicons name="camera-outline" size={32} color={Colors.white} />
+                            <Text style={styles.cameraButtonText}>{getText('📷 कैमरा से स्कैन करें', '📷 Scan with Camera')}</Text>
+                        </Pressable>
 
-                {selectedImageUri && (
-                    <View style={styles.previewContainer}>
-                        <Text style={styles.previewLabel}>
-                            {getText('चयनित दस्तावेज़', 'Selected Document')}
-                        </Text>
-                        <Image source={{ uri: selectedImageUri }} style={styles.previewImage} resizeMode="contain" />
-                        {selectedFileName && (
-                            <Text style={styles.previewFileName}>{selectedFileName}</Text>
+                        <Pressable
+                            style={({ pressed }) => [styles.fileButton, { backgroundColor: Colors.deepBlue }, pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] }]}
+                            onPress={handleUpload}
+                        >
+                            <Ionicons name="document-outline" size={32} color={Colors.white} />
+                            <Text style={styles.fileButtonText}>{getText('📁 फाइल अपलोड करें', '📁 Upload File')}</Text>
+                            <Text style={styles.fileSubtext}>{getText('PDF या छवि स्वीकार्य', 'PDF or Image accepted')}</Text>
+                        </Pressable>
+                    </View>
+                )}
+
+                {previewUri && (
+                    <View style={[styles.previewContainer, { backgroundColor: cardBg }]}>
+                        <Text style={[styles.previewLabel, { color: textPrimary }]}>{getText('दस्तावेज़ पूर्वावलोकन', 'Document Preview')}</Text>
+                        {selectedFile?.type.startsWith('image/') ? (
+                            <Image source={{ uri: previewUri }} style={styles.previewImage} resizeMode="contain" />
+                        ) : (
+                            <View style={[styles.previewImage, { justifyContent: 'center', alignItems: 'center', backgroundColor: pageBg }]}>
+                                <Ionicons name="document-text" size={50} color={textSecondary} />
+                                <Text style={{ color: textSecondary }}>{selectedFile?.name}</Text>
+                            </View>
                         )}
                     </View>
                 )}
 
-                {isScanning && (
+                {loading && (
                     <View style={styles.loadingContainer}>
                         <ActivityIndicator size="large" color={Colors.saffron} />
-                        <Text style={styles.loadingText}>
-                            {getText('AI विश्लेषण कर रहा है...', 'AI is analyzing...')}
-                        </Text>
+                        <Text style={[styles.loadingText, { color: textPrimary }]}>{getText('🔍 दस्तावेज़ विश्लेषण हो रहा है...', '🔍 Analyzing document...')}</Text>
                     </View>
                 )}
 
-                {scanResult && !isScanning && (
-                    <ScrollView style={styles.resultContainer}>
-                        <View style={styles.resultCard}>
-                            <Text style={styles.sectionHeading}>
-                                {getText('यह दस्तावेज़ क्या है:', 'What is this document:')}
-                            </Text>
-                            <Text style={styles.resultText}>{scanResult}</Text>
+                {analysis && !loading && (
+                    <View style={styles.resultsContainer}>
+                        <View style={[styles.resultCard, { backgroundColor: cardBg }]}>
+                            <Text style={[styles.cardTitle, { color: textPrimary }]}>{getText('विश्लेषण परिणाम', 'Analysis Result')}</Text>
+                            <Text style={[styles.cardContent, { color: textPrimary }]}>{analysis}</Text>
                         </View>
-                        <TouchableOpacity
-                            style={styles.resetButton}
-                            onPress={() => {
-                                setScanResult(null);
-                                setSelectedImageUri(null);
-                                setSelectedFileName(null);
-                            }}
-                        >
-                            <Text style={styles.resetButtonText}>
-                                {getText('दूसरा दस्तावेज़ स्कैन करें', 'Scan Another Document')}
-                            </Text>
+
+                        <View style={styles.actionButtons}>
+                            <TouchableOpacity style={[styles.actionButton, { backgroundColor: Colors.saffron }]} onPress={handleCopy}>
+                                <Ionicons name="copy-outline" size={20} color={Colors.white} />
+                                <Text style={styles.actionButtonText}>{getText('कॉपी करें', 'Copy')}</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={[styles.actionButton, { backgroundColor: Colors.saffron }]} onPress={handleShare}>
+                                <Ionicons name="share-outline" size={20} color={Colors.white} />
+                                <Text style={styles.actionButtonText}>{getText('शेयर करें', 'Share')}</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <TouchableOpacity style={[styles.actionButton, { backgroundColor: Colors.deepBlue, width: '100%', marginTop: 10 }]} onPress={() => router.push('/rights')}>
+                            <Text style={styles.actionButtonText}>{getText('संबंधित अधिकार देखें', 'See Related Rights')}</Text>
                         </TouchableOpacity>
-                    </ScrollView>
-                )}
 
-                {!scanResult && !isScanning && !selectedImageUri && (
-                    <View style={styles.scannerPlaceholder}>
-                        <View style={styles.cameraFrame}>
-                            <Ionicons name="scan-outline" size={100} color={Colors.saffron + '40'} />
-                            <View style={styles.cornerTopLeft} />
-                            <View style={styles.cornerTopRight} />
-                            <View style={styles.cornerBottomLeft} />
-                            <View style={styles.cornerBottomRight} />
-                        </View>
-                        <Text style={styles.instruction}>
-                            {getText(
-                                'ऊपर दिए गए विकल्प से दस्तावेज़ चुनें या स्कैन करें',
-                                'Choose or scan a document using the options above'
-                            )}
-                        </Text>
+                        <TouchableOpacity style={[styles.scanAnotherButton, { backgroundColor: Colors.deepBlue }]} onPress={() => { setAnalysis(null); setPreviewUri(null); setSelectedFile(null); }}>
+                            <Text style={styles.scanAnotherText}>{getText('दूसरा दस्तावेज़ स्कैन करें', 'Scan Another')}</Text>
+                        </TouchableOpacity>
                     </View>
                 )}
-            </View>
+            </ScrollView>
         </SafeAreaView>
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: Colors.background,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        backgroundColor: Colors.white,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: Colors.deepBlue,
-    },
-    langToggle: {
-        backgroundColor: Colors.deepBlue,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-    },
-    langText: {
-        color: Colors.white,
-        fontWeight: '600',
-        fontSize: 12,
-    },
-    content: {
-        flex: 1,
-        padding: 20,
-    },
-    buttonRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-        gap: 8,
-    },
-    topButton: {
-        flex: 1,
-        backgroundColor: Colors.saffron,
-        borderRadius: 20,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-    },
-    topButtonSecondary: {
-        flex: 1,
-        backgroundColor: Colors.deepBlue,
-        borderRadius: 20,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-    },
-    topButtonText: {
-        color: Colors.white,
-        fontSize: 14,
-        fontWeight: '700',
-        textAlign: 'center',
-    },
-    scannerPlaceholder: {
-        alignItems: 'center',
-        marginTop: 30,
-    },
-    cameraFrame: {
-        width: 280,
-        height: 380,
-        backgroundColor: Colors.white,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 30,
-        position: 'relative',
-        borderWidth: 1,
-        borderColor: Colors.border,
-    },
-    cornerTopLeft: { position: 'absolute', top: 10, left: 10, width: 40, height: 40, borderTopWidth: 4, borderLeftWidth: 4, borderColor: Colors.saffron, borderTopLeftRadius: 10 },
-    cornerTopRight: { position: 'absolute', top: 10, right: 10, width: 40, height: 40, borderTopWidth: 4, borderRightWidth: 4, borderColor: Colors.saffron, borderTopRightRadius: 10 },
-    cornerBottomLeft: { position: 'absolute', bottom: 10, left: 10, width: 40, height: 40, borderBottomWidth: 4, borderLeftWidth: 4, borderColor: Colors.saffron, borderBottomLeftRadius: 10 },
-    cornerBottomRight: { position: 'absolute', bottom: 10, right: 10, width: 40, height: 40, borderBottomWidth: 4, borderRightWidth: 4, borderColor: Colors.saffron, borderBottomRightRadius: 10 },
-    instruction: {
-        fontSize: 16,
-        color: Colors.textSecondary,
-        marginTop: 20,
-        textAlign: 'center',
-    },
-    previewContainer: {
-        backgroundColor: Colors.white,
-        borderRadius: 16,
-        padding: 12,
-        marginBottom: 16,
-        alignItems: 'center',
-    },
-    previewLabel: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: Colors.textSecondary,
-        marginBottom: 8,
-    },
-    previewImage: {
-        width: '100%',
-        height: 200,
-        borderRadius: 12,
-        backgroundColor: Colors.background,
-    },
-    previewFileName: {
-        marginTop: 8,
-        fontSize: 12,
-        color: Colors.textSecondary,
-    },
-    loadingContainer: {
-        alignItems: 'center',
-        marginTop: 24,
-    },
-    loadingText: {
-        marginTop: 20,
-        fontSize: 16,
-        color: Colors.textPrimary,
-        fontWeight: '600',
-    },
-    resultContainer: {
-        flex: 1,
-        marginTop: 16,
-    },
-    resultHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 20,
-        gap: 12,
-    },
-    resultTitle: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: Colors.green,
-    },
-    resultCard: {
-        backgroundColor: Colors.white,
-        borderRadius: 20,
-        padding: 20,
-        elevation: 2,
-        marginBottom: 16,
-    },
-    sectionHeading: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: Colors.textPrimary,
-        marginBottom: 8,
-    },
-    resultText: {
-        fontSize: 16,
-        lineHeight: 24,
-        color: Colors.textPrimary,
-    },
-    resetButton: {
-        backgroundColor: Colors.deepBlue,
-        borderRadius: 12,
-        paddingVertical: 16,
-        alignItems: 'center',
-        marginBottom: 30,
-    },
-    resetButtonText: {
-        color: Colors.white,
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
+const getStyles = (Colors: any, theme: string) => StyleSheet.create({
+    container: { flex: 1 },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
+    headerTitle: { fontSize: 20, fontWeight: 'bold' },
+    content: { flex: 1, padding: 20 },
+    buttonContainer: { gap: 16, marginBottom: 20 },
+    cameraButton: { borderRadius: 16, padding: 24, alignItems: 'center', elevation: 4, ...Platform.select({ web: { boxShadow: '0px 4px 12px rgba(0,0,0,0.15)' }, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 } }) },
+    cameraButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginTop: 12 },
+    fileButton: { borderRadius: 16, padding: 24, alignItems: 'center', elevation: 4, ...Platform.select({ web: { boxShadow: '0px 4px 12px rgba(0,0,0,0.15)' }, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 } }) },
+    fileButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginTop: 12 },
+    fileSubtext: { color: '#fff', fontSize: 14, opacity: 0.9, marginTop: 4 },
+    previewContainer: { borderRadius: 16, padding: 16, marginBottom: 20, elevation: 2, ...Platform.select({ web: { boxShadow: '0px 2px 8px rgba(0,0,0,0.1)' }, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 } }) },
+    previewLabel: { fontSize: 16, fontWeight: '600', marginBottom: 12 },
+    previewImage: { width: '100%', height: 200, borderRadius: 12 },
+    loadingContainer: { alignItems: 'center', marginTop: 40 },
+    loadingText: { marginTop: 20, fontSize: 18, fontWeight: 'bold' },
+    resultsContainer: { marginTop: 10 },
+    actionButtons: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+    actionButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderRadius: 12, paddingVertical: 12, gap: 8 },
+    actionButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+    resultCard: { borderRadius: 16, padding: 20, marginBottom: 16, elevation: 2, ...Platform.select({ web: { boxShadow: '0px 2px 8px rgba(0,0,0,0.1)' }, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 } }) },
+    cardTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+    cardContent: { fontSize: 15, lineHeight: 22 },
+    scanAnotherButton: { borderRadius: 12, paddingVertical: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 30 },
+    scanAnotherText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });

@@ -8,482 +8,504 @@ import {
     TextInput,
     Share,
     Alert,
-    Modal,
     ActivityIndicator,
+    Platform,
+    KeyboardAvoidingView,
+    Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../constants/colors';
+import { LightColors, DarkColors } from '../constants/colors';
 import { useRouter } from 'expo-router';
 import { useAppContext } from '../context/AppContext';
-import api from '../services/api';
+import { sanitizeInput } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
-const TEMPLATES = {
-    hindi: [
-        { id: 'challan', title: 'ट्रैफिक चालान प्रारूप', content: 'सेवा में,\nन्यायालय श्रीमान ...\nविषय: चालान संख्या ... के संबंध में आवेदन।\n\nमहोदय,\nसविनय निवेदन है कि उपरोक्त चालान ... के कारण काटा गया था। मैं इसे स्वीकार करते हुए ... का अनुरोध करता हूँ।\n\nभवदीय,\n(नाम व हस्ताक्षर)' },
-        { id: 'bail', title: 'जमानत बांड पेपर', content: 'शपथ पत्र\nसमक्ष न्यायालय ...\nमुकदमा संख्या: ...\n\nमैं (नाम) ..., पुत्र श्री ... निवासी ..., यह घोषणा करता हूँ कि मैं अभियुक्त ... की जमानत के लिए तैयार हूँ।\n\nस्थान: ...\nदिनांक: ...\nहस्ताक्षर: ...' },
-        { id: 'fir', title: 'FIR कॉपी प्रारूप', content: 'प्रथम सूचना रिपोर्ट (धारा 154 CrPC)\nप्रति, थाना प्रभारी ...\nदिनांक: ...\n\nविषय: घटना ... की रिपोर्ट दर्ज करने हेतु।\n\nमहोदय,\nघटना का विवरण नीचे दिया गया है:\nशाम लगभग ... बजे ...\n\nप्रार्थी,\n(नाम)' },
-        { id: 'consumer', title: 'उपभोक्ता शिकायत फॉर्म', content: 'समक्ष: उपभोक्ता फोरम, ...\nशिकायतकर्ता: ...\nविपक्ष: ...\n\nविषय: दोषपूर्ण वस्तु/सेवा के संबंध में शिकायत।\n\nहर्जाना राशि: ₹...\nप्रार्थना: ...\n\nहस्ताक्षर: ...' },
-        { id: 'rent_notice', title: 'किराया विवाद नोटिस', content: 'सेवा में,\nश्री/श्रीमती ... (मकान मालिक)\nपता: ...\n\nविषय: किराया भुगतान / सुरक्षा राशि वापसी के संबंध में कानूनी नोटिस\n\nमहोदय / महोदया,\nयह नोटिस आपको सूचित करने हेतु है कि ...\n\nतदनुसार आपसे निवेदन है कि इस नोटिस की प्राप्ति के 15 दिनों के भीतर ...\nअन्यथा मुझे आपके विरुद्ध उचित कानूनी कार्यवाही प्रारंभ करनी पड़ेगी।\n\nभवदीय,\n(किरायेदार का नाम व हस्ताक्षर)\nदिनांक: ...\nस्थान: ...' },
-        { id: 'labour_complaint', title: 'श्रम शिकायत', content: 'सेवा में,\nजिला श्रम अधिकारी,\nपता: ...\n\nविषय: श्रम अधिकारों के उल्लंघन के संबंध में शिकायत\n\nमान्यवर,\nमैं (नाम) ..., कार्यस्थल ... पर ... पद पर कार्यरत हूँ। मेरे साथ निम्न प्रकार से अन्याय हुआ है: ...\n\nकृपया मेरे मामले की जांच कर आवश्यक कार्यवाही करने की कृपा करें।\n\nभवदीय,\n(कर्मचारी का नाम व हस्ताक्षर)\nदिनांक: ...\nस्थान: ...' },
-        { id: 'police_complaint', title: 'पुलिस शिकायत पत्र', content: 'सेवा में,\nथाना प्रभारी,\nपुलिस स्टेशन ...\n\nविषय: शिकायत दर्ज करने हेतु प्रार्थना पत्र\n\nमहोदय,\nमैं (नाम) ..., निवासी ... यह निवेदन करता/करती हूँ कि ... घटना हुई है, जिसका विवरण निम्न प्रकार है: ...\n\nकृपया मेरी शिकायत पर उचित कानूनी कार्यवाही करने की कृपा करें।\n\nभवदीय,\n(नाम व हस्ताक्षर)\nदिनांक: ...\nस्थान: ...' },
-        { id: 'consumer_forum_notice', title: 'उपभोक्ता शिकायत (फोरम नोटिस)', content: 'समक्ष: उपभोक्ता विवाद प्रतितोष आयोग, ...\nशिकायतकर्ता: ...\nविपक्ष पक्ष: ...\n\nविषय: उपभोक्ता संरक्षण अधिनियम के अंतर्गत शिकायत\n\nमान्यवर,\nयह शिकायत आपके अधीन प्रस्तुत की जा रही है कि ...\n\nकृपया विपक्ष पक्ष को नोटिस जारी कर उचित राहत देने की कृपा करें।\n\nशिकायतकर्ता,\n(नाम व हस्ताक्षर)\nदिनांक: ...\nस्थान: ...' },
+const TEMPLATE_FIELDS: any = {
+    rent_notice: [
+        { key: 'tenant_name', label_hi: 'किरायेदार का नाम', label_en: 'Tenant Name', placeholder_hi: 'उदा: राहुल कुमार', placeholder_en: 'e.g. Rahul Kumar' },
+        { key: 'landlord_name', label_hi: 'मकान मालिक का नाम', label_en: 'Landlord Name', placeholder_hi: 'उदा: श्री सुरेश जैन', placeholder_en: 'e.g. Rajesh Sharma' },
+        { key: 'address', label_hi: 'पता', label_en: 'Address', placeholder_hi: 'उदा: फ्लैट 402, शिव एनक्लेव', placeholder_en: 'e.g. Flat 402, Shiv Enclave' },
+        { key: 'rent_amount', label_hi: 'किराया राशि', label_en: 'Rent Amount', placeholder_hi: 'उदा: 15,000', placeholder_en: 'e.g. 15,000' },
+        { key: 'reason', label_hi: 'विवाद का कारण', label_en: 'Reason for Dispute', placeholder_hi: 'उदा: सुरक्षा राशि वापसी', placeholder_en: 'e.g. Security deposit refund' },
     ],
-    english: [
-        { id: 'challan', title: 'Traffic Challan Format', content: 'To,\nThe Hon\'ble Court of ...\nSubject: Application regarding Challan No. ...\n\nRespected Sir,\nIt is submitted that the aforementioned challan was issued for ... I accept the same and request ...\n\nYours faithfully,\n(Name & Signature)' },
-        { id: 'bail', title: 'Bail Bond Paper', content: 'AFFIDAVIT\nBefore the Court of ...\nCase No: ...\n\nI (Name) ..., S/o श्री ... R/o ..., do hereby declare that I am stand as surety for the accused ...\n\nPlace: ...\nDate: ...\nSignature: ...' },
-        { id: 'fir', title: 'FIR Copy Format', content: 'FIRST INFORMATION REPORT (u/s 154 CrPC)\nTo, SHO ..., Police Station ...\nDate: ...\n\nSubject: Report regarding incident of ...\n\nSir,\nThe details of the incident are as follows:\nAround ... PM on ...\n\nComplainant,\n(Name)' },
-        { id: 'consumer', title: 'Consumer Complaint Form', content: 'Before: Consumer Forum, ...\nComplainant: ...\nOpposite Party: ...\n\nSubject: Complaint regarding defective goods/services.\n\nCompensation Amount: ₹...\nPrayer: ...\n\nSignature: ...' },
-        { id: 'rent_notice', title: 'Rent Dispute Notice', content: 'To,\nMr./Ms. ... (Landlord)\nAddress: ...\n\nSubject: Legal Notice regarding rent / security deposit dispute\n\nSir/Madam,\nThis notice is being issued to inform you that ...\n\nYou are hereby called upon to pay/settle the above within 15 days of receipt of this notice, failing which I shall be constrained to initiate appropriate legal proceedings.\n\nYours faithfully,\n(Tenant\'s Name & Signature)\nDate: ...\nPlace: ...' },
-        { id: 'labour_complaint', title: 'Labour Complaint', content: 'To,\nThe Labour Officer,\nAddress: ...\n\nSubject: Complaint regarding violation of labour rights\n\nRespected Sir/Madam,\nI, (Name) ..., working at ... as ..., am facing the following issues: ...\n\nKindly inquire into my case and take necessary action.\n\nYours faithfully,\n(Employee\'s Name & Signature)\nDate: ...\nPlace: ...' },
-        { id: 'police_complaint', title: 'Police Complaint Letter', content: 'To,\nThe Station House Officer,\nPolice Station ...\n\nSubject: Application for lodging complaint\n\nSir,\nI, (Name) ..., resident of ..., wish to state that the following incident has occurred: ...\n\nKindly register my complaint and take necessary legal action.\n\nYours faithfully,\n(Name & Signature)\nDate: ...\nPlace: ...' },
-        { id: 'consumer_forum_notice', title: 'Consumer Forum Notice', content: 'Before: Consumer Disputes Redressal Commission, ...\nComplainant: ...\nOpposite Party: ...\n\nSubject: Complaint under Consumer Protection Act\n\nRespected Sir/Madam,\nThis complaint is being filed against the opposite party for ...\n\nKindly issue notice to the opposite party and grant appropriate relief.\n\nComplainant,\n(Name & Signature)\nDate: ...\nPlace: ...' },
+    labor_complaint: [
+        { key: 'employee_name', label_hi: 'आपका नाम', label_en: 'Your Name', placeholder_hi: 'उदा: अमित सिंह', placeholder_en: 'e.g. Amit Singh' },
+        { key: 'company_name', label_hi: 'कंपनी/संस्था का नाम', label_en: 'Company Name', placeholder_hi: 'उदा: एबीसी प्राइवेट लिमिटेड', placeholder_en: 'e.g. ABC Pvt Ltd' },
+        { key: 'designation', label_hi: 'पद', label_en: 'Designation', placeholder_hi: 'उदा: सुपरवाइजर', placeholder_en: 'e.g. Supervisor' },
+        { key: 'description', label_hi: 'शिकायत का विवरण', label_en: 'Issue Description', placeholder_hi: 'उदा: 2 महीने का वेतन नहीं मिला', placeholder_en: 'e.g. Last 2 months salary unpaid' },
+    ],
+    police_complaint: [
+        { key: 'complainant_name', label_hi: 'शिकायतकर्ता का नाम', label_en: 'Complainant Name', placeholder_hi: 'उदा: संजय दत्त', placeholder_en: 'e.g. Sanjay Dutt' },
+        { key: 'event_date', label_hi: 'घटना की तारीख', label_en: 'Date of Event', placeholder_hi: 'उदा: 10/03/2026', placeholder_en: 'e.g. 10/03/2026' },
+        { key: 'event_location', label_hi: 'घटना का स्थान', label_en: 'Location', placeholder_hi: 'उदा: विकास नगर मार्केट', placeholder_en: 'e.g. Vikas Nagar Market' },
+        { key: 'description', label_hi: 'घटना का विवरण', label_en: 'Description', placeholder_hi: 'उदा: मोबाइल चोरी', placeholder_en: 'e.g. Mobile theft' },
+        { key: 'police_station', label_hi: 'पुलिस स्टेशन', label_en: 'Police Station', placeholder_hi: 'उदा: वसंत कुंज', placeholder_en: 'e.g. Vasant Kunj' },
+    ],
+    consumer_complaint: [
+        { key: 'consumer_name', label_hi: 'उपभोक्ता का नाम', label_en: 'Consumer Name', placeholder_hi: 'उदा: नेहा गुप्ता', placeholder_en: 'e.g. Neha Gupta' },
+        { key: 'shop_name', label_hi: 'दुकान/ब्रांड का नाम', label_en: 'Shop/Brand Name', placeholder_hi: 'उदा: ई-कॉमर्स स्टोर', placeholder_en: 'e.g. E-commerce store' },
+        { key: 'purchase_date', label_hi: 'खरीद की तारीख', label_en: 'Purchase Date', placeholder_hi: 'उदा: 05/03/2026', placeholder_en: 'e.g. 05/03/2026' },
+        { key: 'description', label_hi: 'समस्या का विवरण', label_en: 'Problem Description', placeholder_hi: 'उदा: खराब सामान मिला', placeholder_en: 'e.g. Received damaged product' },
+        { key: 'amount_requested', label_hi: 'हर्जाना राशि', label_en: 'Claim Amount', placeholder_hi: 'उदा: 5,000', placeholder_en: 'e.g. 5,000' },
     ]
 };
 
+const TEMPLATES = {
+    hindi: [
+        { id: 'rent_notice', title: 'किराया विवाद नोटिस', icon: 'home' },
+        { id: 'labor_complaint', title: 'श्रम शिकायत', icon: 'briefcase' },
+        { id: 'police_complaint', title: 'पुलिस शिकायत पत्र', icon: 'shield' },
+        { id: 'consumer_complaint', title: 'उपभोक्ता शिकायत', icon: 'cart' },
+    ],
+    english: [
+        { id: 'rent_notice', title: 'Rent Dispute Notice', icon: 'home' },
+        { id: 'labor_complaint', title: 'Labor Complaint', icon: 'briefcase' },
+        { id: 'police_complaint', title: 'Police Complaint Letter', icon: 'shield' },
+        { id: 'consumer_complaint', title: 'Consumer Complaint', icon: 'cart' },
+    ]
+};
+
+const generateHTMLDoc = (title: string, content: string) => `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  body { font-family: Georgia, serif; padding: 60px; max-width: 794px; margin: 0 auto; }
+  h1 { text-align: center; font-size: 20px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+  p { line-height: 1.8; font-size: 14px; text-align: justify; white-space: pre-wrap; }
+  .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-45deg); font-size: 60px; color: rgba(0,0,0,0.05); z-index: -1; }
+  .footer { margin-top: 40px; border-top: 1px solid #ccc; padding-top: 20px; }
+  .logo { text-align: right; font-size: 10px; color: #666; }
+</style>
+</head>
+<body>
+<div class="watermark">NyayMitra</div>
+<div class="logo">⚖️ NyayMitra - भारत का AI वकील</div>
+<h1>${title}</h1>
+${content.split('\n').map(p => p.trim() ? `<p>${p}</p>` : '<br/>').join('')}
+<div class="footer">
+  <p>हस्ताक्षर: _________________ &nbsp;&nbsp; दिनांक: _________________</p>
+  <p style="font-size:10px;color:#666;">यह दस्तावेज़ NyayMitra AI द्वारा तैयार किया गया है। कानूनी कार्यवाही से पहले किसी वकील से सलाह लें।</p>
+</div>
+</body>
+</html>`;
+
 export default function DocGeneratorScreen() {
+    const { theme, language, setLanguage } = useAppContext();
+    const Colors = theme === 'dark' ? DarkColors : LightColors;
+    const styles = getStyles(Colors, theme);
+    const isDark = theme === 'dark';
+
+    // Dark mode color variables
+    const textPrimary = isDark ? '#FFFFFF' : '#1a237e';
+    const textSecondary = isDark ? '#CCCCCC' : '#555555';
+    const textBody = isDark ? '#EEEEEE' : '#333333';
+    const cardBg = isDark ? '#243447' : '#FFFFFF';
+    const pageBg = isDark ? '#0D1B2A' : '#F5F5F5';
+    const dividerColor = isDark ? '#2A3F55' : '#E0E0E0';
+    const inputBg = isDark ? '#1B2B3B' : '#FFFFFF';
+
     const router = useRouter();
-    const { language, setLanguage, isPremium } = useAppContext();
-    const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
-    const [customInput, setCustomInput] = useState('');
+    const [step, setStep] = useState(1);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [formFields, setFormFields] = useState<any>({});
+    const [userSituation, setUserSituation] = useState('');
+    const [generatedDoc, setGeneratedDoc] = useState<string>('');
     const [isGenerating, setIsGenerating] = useState(false);
-    const [generatedDoc, setGeneratedDoc] = useState<string | null>(null);
-    const [isModalVisible, setIsModalVisible] = useState(false);
 
-    const getText = (hindi: string, english: string) => {
-        return language === 'hindi' ? hindi : english;
+    const getText = (hindi: string, english: string) => language === 'hindi' ? hindi : english;
+
+    const handleSelectTemplate = (id: string) => {
+        setSelectedId(id);
+        setFormFields({});
+        setUserSituation('');
+        setStep(2);
     };
 
-    const handleSelectTemplate = (item: any) => {
-        if (false) {
-            Alert.alert(
-                getText('प्रीमियम फीचर', 'Premium Feature'),
-                getText(
-                    'डॉक्यूमेंट जनरेटर का उपयोग करने के लिए कृपया प्रीमियम में अपग्रेड करें।',
-                    'Please upgrade to Premium to use the Document Generator.'
-                ),
-                [{ text: getText('अभी अपग्रेड करें', 'Upgrade Now'), onPress: () => router.push('/profile') }, { text: getText('ठीक है', 'OK') }]
-            );
-            return;
-        }
-        setSelectedTemplate(item);
-    };
-
-    const currentTemplates = language === 'hindi' ? TEMPLATES.hindi : TEMPLATES.english;
-
-    const handleShare = async () => {
-        if (!selectedTemplate) return;
-        try {
-            await Share.share({
-                message: selectedTemplate.content,
-                title: selectedTemplate.title,
-            });
-        } catch (error) {
-            console.log('Share error:', error);
-        }
-    };
-
-    const handleGenerateCustom = async () => {
-        if (false) {
-            Alert.alert(
-                getText('प्रीमियम फीचर', 'Premium Feature'),
-                getText(
-                    'डॉक्यूमेंट जनरेटर का उपयोग करने के लिए कृपया प्रीमियम में अपग्रेड करें।',
-                    'Please upgrade to Premium to use the Document Generator.'
-                ),
-                [
-                    {
-                        text: getText('अभी अपग्रेड करें', 'Upgrade Now'),
-                        onPress: () => router.push('/profile'),
-                    },
-                    { text: getText('ठीक है', 'OK') },
-                ]
-            );
-            return;
+    const handleGenerate = async () => {
+        const fields = TEMPLATE_FIELDS[selectedId!];
+        for (const field of fields) {
+            if (!formFields[field.key]) {
+                Alert.alert(getText('अपूर्ण फॉर्म', 'Incomplete Form'), getText(`${field.label_hi} आवश्यक है`, `${field.label_en} is required`));
+                return;
+            }
         }
 
-        if (!customInput.trim()) {
-            Alert.alert(
-                getText('विवरण आवश्यक', 'Description Required'),
-                getText(
-                    'कृपया पहले अपनी स्थिति विस्तार से लिखें।',
-                    'Please describe your situation in detail first.'
-                )
-            );
-            return;
-        }
         try {
             setIsGenerating(true);
-            setGeneratedDoc(null);
+            const sanitizedFields = Object.keys(formFields).reduce((acc: any, key) => {
+                acc[key] = sanitizeInput(formFields[key]);
+                return acc;
+            }, {});
+            const sanitizedSituation = sanitizeInput(userSituation);
 
-            const res = await fetch('http://localhost:8001/api/documents/generate', {
+            const response = await fetch('http://192.168.1.4:8001/api/documents/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    template_type: 'custom',
-                    details: { description: customInput.trim() }
+                    template_type: selectedId,
+                    fields: sanitizedFields,
+                    user_situation: sanitizedSituation,
+                    language: language
                 })
             });
-            const data = await res.json();
-            const docText = data?.document as string;
-            setGeneratedDoc(docText);
-            setIsModalVisible(true);
-        } catch (error: any) {
-            console.log('Custom document generation error:', error?.response || error);
-            Alert.alert(
-                getText('त्रुटि', 'Error'),
-                getText(
-                    'दस्तावेज़ नहीं बन पाया। कृपया बाद में पुनः प्रयास करें।',
-                    'Unable to generate document. Please try again later.'
-                )
-            );
+
+            if (!response.ok) throw new Error('API Error');
+            const data = await response.json();
+            setGeneratedDoc(data.document);
+            setStep(3);
+
+            const historyItem = {
+                id: `doc_${Date.now()}`,
+                type: selectedId,
+                title: TEMPLATES[language === 'hindi' ? 'hindi' : 'english'].find(t => t.id === selectedId)?.title || 'Legal Document',
+                content: data.document,
+                createdAt: new Date().toISOString(),
+            };
+            const existing = await AsyncStorage.getItem('generated_docs');
+            const history = existing ? JSON.parse(existing) : [];
+            history.unshift(historyItem);
+            await AsyncStorage.setItem('generated_docs', JSON.stringify(history));
+
+            const statsStr = await AsyncStorage.getItem('stats_docs_count');
+            const count = parseInt(statsStr || '0') + 1;
+            await AsyncStorage.setItem('stats_docs_count', count.toString());
+
+        } catch {
+            Alert.alert(getText('त्रुटि', 'Error'), getText('दस्तावेज़ बनाने में विफल। कृपया पुन: प्रयास करें।', 'Failed to generate document. Please try again.'));
         } finally {
             setIsGenerating(false);
         }
     };
 
-    const handleShareGenerated = async () => {
-        if (!generatedDoc) return;
+    const handleAIGenerate = async () => {
+        if (!userSituation.trim()) return;
+
         try {
-            await Share.share({
-                message: generatedDoc,
-                title: getText('AI दस्तावेज़', 'AI Document'),
+            setIsGenerating(true);
+            const sanitizedSituation = sanitizeInput(userSituation);
+
+            const response = await fetch('http://192.168.1.4:8001/api/documents/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    template_type: "custom",
+                    user_situation: sanitizedSituation,
+                    language: language
+                })
             });
-        } catch (error) {
-            console.log('Share generated document error:', error);
+
+            if (!response.ok) throw new Error('API Error');
+            const data = await response.json();
+            setGeneratedDoc(data.document);
+            setSelectedId('custom');
+            setStep(3);
+
+            const historyItem = {
+                id: `doc_${Date.now()}`,
+                type: 'custom',
+                title: 'AI Generated Document',
+                content: data.document,
+                createdAt: new Date().toISOString(),
+            };
+            const existing = await AsyncStorage.getItem('generated_docs');
+            const history = existing ? JSON.parse(existing) : [];
+            history.unshift(historyItem);
+            await AsyncStorage.setItem('generated_docs', JSON.stringify(history));
+
+            const statsStr = await AsyncStorage.getItem('stats_docs_count');
+            const count = parseInt(statsStr || '0') + 1;
+            await AsyncStorage.setItem('stats_docs_count', count.toString());
+
+        } catch {
+            Alert.alert(getText('त्रुटि', 'Error'), getText('दस्तावेज़ बनाने में विफल। कृपया पुन: प्रयास करें।', 'Failed to generate document. Please try again.'));
+        } finally {
+            setIsGenerating(false);
         }
     };
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Ionicons name="arrow-back" size={24} color={Colors.deepBlue} />
-                </TouchableOpacity>
-                <Text style={styles.headerTitle}>{getText('डॉक्यूमेंट जनरेटर', 'Doc Generator')}</Text>
+    const handleShare = async () => {
+        try {
+            await Share.share({ message: generatedDoc });
+        } catch { }
+    };
+
+    const downloadPDF = async () => {
+        try {
+            const title = TEMPLATES[language === 'hindi' ? 'hindi' : 'english'].find(t => t.id === selectedId)?.title || 'Document';
+            const { uri } = await Print.printToFileAsync({ html: generateHTMLDoc(title, generatedDoc) });
+            await Sharing.shareAsync(uri, { mimeType: 'application/pdf' });
+        } catch { Alert.alert('Error', 'Failed to save PDF'); }
+    };
+
+    const renderStep1 = () => (
+        <View style={styles.stepContainer}>
+            <Text style={[styles.sectionTitle, { color: textPrimary }]}>{getText('एक कानूनी टेम्पलेट चुनें', 'Select a Legal Template')}</Text>
+            <View style={styles.grid}>
+                {TEMPLATES[language === 'hindi' ? 'hindi' : 'english'].map((item) => (
+                    <Pressable
+                        key={item.id}
+                        style={({ pressed }) => [styles.card, { backgroundColor: cardBg }, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
+                        onPress={() => handleSelectTemplate(item.id)}
+                    >
+                        <View style={[styles.iconBg, { backgroundColor: Colors.saffron }]}>
+                            <Ionicons name={item.icon as any} size={30} color="#fff" />
+                        </View>
+                        <Text style={[styles.cardTitle, { color: textPrimary }]}>{item.title}</Text>
+                    </Pressable>
+                ))}
             </View>
 
-            <ScrollView contentContainerStyle={styles.content}>
-                {!selectedTemplate ? (
-                    <>
-                        <Text style={styles.subTitle}>
-                            {getText('एक कानूनी टेम्पलेट चुनें', 'Select a legal template')}
-                        </Text>
-                        <View style={styles.grid}>
-                            {currentTemplates.map((item) => (
-                                <TouchableOpacity
-                                    key={item.id}
-                                    style={styles.card}
-                                    onPress={() => handleSelectTemplate(item)}
-                                >
-                                    <View style={styles.iconBg}>
-                                        <Ionicons name="document-text" size={30} color={Colors.white} />
-                                    </View>
-                                    <Text style={styles.cardTitle}>{item.title}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
+            {/* AI Chat Box Section */}
+            <View style={styles.dividerContainer}>
+                <View style={[styles.dividerLine, { backgroundColor: dividerColor }]} />
+                <Text style={[styles.dividerText, { color: textSecondary }]}>या</Text>
+                <View style={[styles.dividerLine, { backgroundColor: dividerColor }]} />
+            </View>
 
-                        <View style={styles.customSection}>
-                            <Text style={styles.customHeading}>
-                                {getText('अपना दस्तावेज़ बनाएं', 'Create Your Own Document')}
-                            </Text>
-                            <TextInput
-                                style={styles.customInput}
-                                multiline
-                                placeholder={
-                                    language === 'hindi'
-                                        ? 'अपनी स्थिति विस्तार से लिखें... जैसे: मेरे मकान मालिक ने 3 महीने से पैसे नहीं लौटाए'
-                                        : 'Describe your situation in detail... e.g. My landlord has not returned my deposit for 3 months'
-                                }
-                                placeholderTextColor={Colors.textLight}
-                                value={customInput}
-                                onChangeText={setCustomInput}
-                                textAlignVertical="top"
-                            />
-                            <TouchableOpacity
-                                style={[styles.generateButton, isGenerating && styles.generateButtonDisabled]}
-                                onPress={handleGenerateCustom}
-                                disabled={isGenerating}
-                            >
-                                {isGenerating ? (
-                                    <ActivityIndicator color={Colors.white} />
-                                ) : (
-                                    <>
-                                        <Ionicons name="sparkles-outline" size={20} color={Colors.white} />
-                                        <Text style={styles.generateButtonText}>
-                                            {getText('दस्तावेज़ बनाएं (AI)', 'Generate Document (AI)')}
-                                        </Text>
-                                    </>
-                                )}
-                            </TouchableOpacity>
+            <View style={[styles.card, styles.aiCard, { backgroundColor: cardBg }]}>
+                <Text style={[styles.aiCardTitle, { color: textPrimary }]}>✍️ खुद बताएं, AI बनाएगा</Text>
+                <Text style={[styles.aiCardSubtitle, { color: textSecondary }]}>अपनी स्थिति लिखें, AI तुरंत दस्तावेज़ बनाएगा</Text>
+                
+                <TextInput
+                    style={[styles.aiInput, { backgroundColor: inputBg, color: textPrimary, borderColor: dividerColor }]}
+                    placeholder="उदाहरण: मेरे मकान मालिक ने 3 महीने से किराया वापस नहीं किया, मुझे कानूनी नोटिस चाहिए..."
+                    placeholderTextColor={textSecondary}
+                    multiline
+                    numberOfLines={4}
+                    value={userSituation}
+                    onChangeText={setUserSituation}
+                />
+
+                <Pressable 
+                    style={({ pressed }) => [styles.aiButton, { backgroundColor: Colors.saffron }, isGenerating && styles.disabledButton, pressed && { opacity: 0.8 }]} 
+                    onPress={handleAIGenerate} 
+                    disabled={isGenerating || !userSituation.trim()}
+                >
+                    {isGenerating ? (
+                        <>
+                            <ActivityIndicator color="#fff" size="small" />
+                            <Text style={styles.aiButtonText}>दस्तावेज़ तैयार हो रहा है...</Text>
+                        </>
+                    ) : (
+                        <>
+                            <Ionicons name="flash" size={18} color="#fff" />
+                            <Text style={styles.aiButtonText}>⚡ AI से दस्तावेज़ बनाएं</Text>
+                        </>
+                    )}
+                </Pressable>
+            </View>
+        </View>
+    );
+
+    const renderStep2 = () => {
+        const fields = TEMPLATE_FIELDS[selectedId!];
+        const template = TEMPLATES[language === 'hindi' ? 'hindi' : 'english'].find(t => t.id === selectedId);
+        return (
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.stepContainer}>
+                <ScrollView showsVerticalScrollIndicator={false}>
+                    <Text style={[styles.sectionTitle, { color: textPrimary }]}>{template?.title}</Text>
+                    <Text style={[styles.sectionSubtitle, { color: textSecondary }]}>{getText('कृपया नीचे दी गई जानकारी भरें:', 'Please fill in the details below:')}</Text>
+
+                    {fields.map((f: any) => (
+                        <View key={f.key} style={styles.formGroup}>
+                            <Text style={[styles.label, { color: textPrimary }]}>{getText(f.label_hi, f.label_en)}</Text>
+                            <TextInput style={[styles.input, { backgroundColor: inputBg, color: textPrimary, borderColor: dividerColor }]} placeholder={getText(f.placeholder_hi, f.placeholder_en)} placeholderTextColor={textSecondary} value={formFields[f.key] || ''} onChangeText={(val) => setFormFields({ ...formFields, [f.key]: val })} />
                         </View>
-                    </>
-                ) : (
-                    <View style={styles.editorContainer}>
-                        <View style={styles.editorHeader}>
-                            <Text style={styles.editorTitle}>{selectedTemplate.title}</Text>
-                            <TouchableOpacity onPress={() => setSelectedTemplate(null)}>
-                                <Ionicons name="close-circle" size={24} color={Colors.red} />
-                            </TouchableOpacity>
-                        </View>
+                    ))}
+
+                    <View style={styles.formGroup}>
+                        <Text style={[styles.label, { color: textPrimary }]}>{getText('अपनी स्थिति बताएं (वैकल्पिक)', 'Your situation (Optional)')}</Text>
                         <TextInput
-                            style={styles.editor}
+                            style={[styles.input, styles.textArea, { backgroundColor: inputBg, color: textPrimary, borderColor: dividerColor }]}
+                            placeholder={getText('अपनी समस्या या स्थिति विस्तार से लिखें... AI इसे दस्तावेज़ में शामिल करेगा', 'Describe your problem or situation in detail... AI will include it in the document')}
+                            placeholderTextColor={textSecondary}
                             multiline
-                            value={selectedTemplate.content}
-                            onChangeText={(text) => setSelectedTemplate({ ...selectedTemplate, content: text })}
+                            numberOfLines={4}
+                            value={userSituation}
+                            onChangeText={setUserSituation}
                         />
-                        <View style={styles.actions}>
-                            <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-                                <Ionicons name="share-social" size={20} color={Colors.white} />
-                                <Text style={styles.actionText}>{getText('शेयर करें', 'Share')}</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.printButton} onPress={() => Alert.alert(getText('जल्द आ रहा है', 'Coming Soon'), getText('प्रिंट फीचर जल्द उपलब्ध होगा।', 'Printing feature will be available soon.'))}>
-                                <Ionicons name="print" size={20} color={Colors.white} />
-                                <Text style={styles.actionText}>{getText('प्रिंट', 'Print')}</Text>
-                            </TouchableOpacity>
-                        </View>
                     </View>
-                )}
-            </ScrollView>
-            <Modal
-                visible={isModalVisible}
-                animationType="slide"
-                onRequestClose={() => setIsModalVisible(false)}
-                transparent
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContainer}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>
-                                {getText('बनाया गया दस्तावेज़', 'Generated Document')}
+
+                    <Pressable style={({ pressed }) => [styles.mainButton, { backgroundColor: Colors.saffron }, isGenerating && styles.disabledButton, pressed && { opacity: 0.8 }]} onPress={handleGenerate} disabled={isGenerating}>
+                        {isGenerating ? <ActivityIndicator color="#fff" /> : (
+                            <>
+                                <Ionicons name="sparkles" size={20} color="#fff" />
+                                <Text style={styles.mainButtonText}>{getText('दस्तावेज़ बनाएं (AI)', 'Generate Document (AI)')}</Text>
+                            </>
+                        )}
+                    </Pressable>
+
+                    <TouchableOpacity style={styles.backButton} onPress={() => setStep(1)}>
+                        <Text style={[styles.backButtonText, { color: textSecondary }]}>{getText('पीछे जाएं', 'Go Back')}</Text>
+                    </TouchableOpacity>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        );
+    };
+
+    const renderStep3 = () => (
+        <View style={styles.stepContainer}>
+            <ScrollView>
+                <View style={{
+                    backgroundColor: '#FFFFFF',
+                    margin: 16,
+                    padding: 40,
+                    minHeight: 600,
+                    shadowColor: '#000',
+                    shadowOffset: {width: 0, height: 4},
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 8,
+                    borderWidth: 1,
+                    borderColor: '#E0E0E0',
+                    position: 'relative',
+                }}>
+                    
+                    {/* Watermark - diagonal across page */}
+                    <Text style={{
+                        position: 'absolute',
+                        top: '40%',
+                        left: '5%',
+                        fontSize: 28,
+                        color: 'rgba(255, 107, 0, 0.06)',
+                        transform: [{rotate: '-45deg'}],
+                        width: '120%',
+                        textAlign: 'center',
+                        fontWeight: 'bold',
+                        zIndex: 0,
+                    }}>
+                        NyayMitra NyayMitra NyayMitra
+                    </Text>
+
+                    {/* Header */}
+                    <View style={{alignItems: 'center', marginBottom: 20, zIndex: 1}}>
+                        <Text style={{fontSize: 11, color: '#888', textAlign: 'right', 
+                            width: '100%'}}>⚖️ NyayMitra - AI Legal Assistant</Text>
+                        <View style={{height: 1, backgroundColor: '#333', 
+                            width: '100%', marginTop: 8}}/>
+                    </View>
+
+                    {/* Document Title - Bold, Centered */}
+                    <Text style={{
+                        fontSize: 18,
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        color: '#000000',
+                        marginBottom: 20,
+                        fontFamily: 'serif',
+                        zIndex: 1,
+                    }}>
+                        {TEMPLATES[language === 'hindi' ? 'hindi' : 'english'].find(t => t.id === selectedId)?.title || 'AI Generated Document'}
+                    </Text>
+
+                    {/* Document Body - Justified text */}
+                    <Text style={{
+                        fontSize: 14,
+                        lineHeight: 24,
+                        color: '#111111',
+                        textAlign: 'justify',
+                        fontFamily: 'serif',
+                        zIndex: 1,
+                    }}>
+                        {generatedDoc}
+                    </Text>
+
+                    {/* Footer */}
+                    <View style={{marginTop: 40, zIndex: 1}}>
+                        <View style={{height: 1, backgroundColor: '#CCCCCC', 
+                            marginBottom: 12}}/>
+                        <Text style={{fontSize: 11, color: '#666', textAlign: 'center'}}>
+                            यह दस्तावेज़ NyayMitra AI द्वारा तैयार किया गया है।
+                        </Text>
+                        <Text style={{fontSize: 10, color: '#999', textAlign: 'center',
+                            marginTop: 4}}>
+                            कानूनी कार्यवाही से पहले किसी वकील से सलाह लें।
+                        </Text>
+                        <View style={{marginTop: 24}}>
+                            <Text style={{fontSize: 12, color: '#333'}}>
+                                हस्ताक्षर: _______________________
                             </Text>
-                            <TouchableOpacity onPress={() => setIsModalVisible(false)}>
-                                <Ionicons name="close" size={24} color={Colors.textPrimary} />
-                            </TouchableOpacity>
-                        </View>
-                        <ScrollView style={styles.modalBody}>
-                            <Text style={styles.modalText}>{generatedDoc}</Text>
-                        </ScrollView>
-                        <View style={styles.modalActions}>
-                            <TouchableOpacity style={styles.shareButton} onPress={handleShareGenerated}>
-                                <Ionicons name="share-social" size={20} color={Colors.white} />
-                                <Text style={styles.actionText}>{getText('शेयर करें', 'Share')}</Text>
-                            </TouchableOpacity>
+                            <Text style={{fontSize: 12, color: '#333', marginTop: 8}}>
+                                दिनांक: _______________________
+                            </Text>
                         </View>
                     </View>
                 </View>
-            </Modal>
+            </ScrollView>
+            <View style={styles.actionButtons}>
+                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#1a237e' }]} onPress={handleShare}>
+                    <Ionicons name="share-social" size={20} color="#fff" /><Text style={styles.actionBtnText}>{getText('शेयर', 'Share')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#138808' }]} onPress={downloadPDF}>
+                    <Ionicons name="download" size={20} color="#fff" /><Text style={styles.actionBtnText}>{getText('डाउनलोड', 'PDF')}</Text>
+                </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={styles.resetButton} onPress={() => setStep(1)}>
+                <Text style={[styles.resetButtonText, { color: Colors.saffron }]}>{getText('नया दस्तावेज़ बनाएं', 'Create New Document')}</Text>
+            </TouchableOpacity>
+        </View>
+    );
+
+    return (
+        <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
+            <View style={[styles.header, { backgroundColor: cardBg, borderBottomColor: dividerColor }]}>
+                <TouchableOpacity onPress={() => step > 1 ? setStep(step - 1) : router.back()}>
+                    <Ionicons name="arrow-back" size={24} color={textPrimary} />
+                </TouchableOpacity>
+                <Text style={[styles.headerTitle, { color: textPrimary }]}>{getText('डॉक्यूमेंट जनरेटर', 'Doc Generator')}</Text>
+                <TouchableOpacity onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')} style={[styles.langBtn, { backgroundColor: Colors.deepBlue }]}><Text style={styles.langBtnText}>{language === 'hindi' ? 'EN' : 'हि'}</Text></TouchableOpacity>
+            </View>
+            {step === 1 && renderStep1()}
+            {step === 2 && renderStep2()}
+            {step === 3 && renderStep3()}
         </SafeAreaView>
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: Colors.background,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        backgroundColor: Colors.white,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: Colors.deepBlue,
-    },
-    langToggle: {
-        backgroundColor: Colors.deepBlue,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-    },
-    langText: {
-        color: Colors.white,
-        fontWeight: '600',
-        fontSize: 12,
-    },
-    content: {
-        padding: 20,
-    },
-    subTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: Colors.textSecondary,
-        marginBottom: 20,
-    },
-    grid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 15,
-    },
-    card: {
-        width: '47%',
-        backgroundColor: Colors.white,
-        borderRadius: 16,
-        padding: 20,
-        alignItems: 'center',
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-    },
-    iconBg: {
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        backgroundColor: Colors.saffron,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    cardTitle: {
-        fontSize: 14,
-        fontWeight: '700',
-        color: Colors.textPrimary,
-        textAlign: 'center',
-    },
-    editorContainer: {
-        backgroundColor: Colors.white,
-        borderRadius: 20,
-        padding: 20,
-        elevation: 4,
-    },
-    editorHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 15,
-    },
-    editorTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: Colors.deepBlue,
-    },
-    editor: {
-        backgroundColor: Colors.background,
-        borderRadius: 12,
-        padding: 15,
-        fontSize: 14,
-        minHeight: 300,
-        color: Colors.textPrimary,
-        textAlignVertical: 'top',
-    },
-    actions: {
-        flexDirection: 'row',
-        marginTop: 20,
-        gap: 10,
-    },
-    shareButton: {
-        flex: 1,
-        flexDirection: 'row',
-        backgroundColor: Colors.deepBlue,
-        borderRadius: 12,
-        paddingVertical: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 8,
-    },
-    printButton: {
-        flex: 1,
-        flexDirection: 'row',
-        backgroundColor: Colors.green,
-        borderRadius: 12,
-        paddingVertical: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 8,
-    },
-    actionText: {
-        color: Colors.white,
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    customSection: {
-        marginTop: 30,
-        backgroundColor: Colors.white,
-        borderRadius: 20,
-        padding: 16,
-        elevation: 3,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-    },
-    customHeading: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: Colors.deepBlue,
-        marginBottom: 12,
-    },
-    customInput: {
-        backgroundColor: Colors.background,
-        borderRadius: 12,
-        padding: 12,
-        minHeight: 140,
-        fontSize: 14,
-        color: Colors.textPrimary,
-        marginBottom: 12,
-    },
-    generateButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        backgroundColor: Colors.saffron,
-        borderRadius: 24,
-        paddingVertical: 12,
-    },
-    generateButtonDisabled: {
-        opacity: 0.7,
-    },
-    generateButtonText: {
-        color: Colors.white,
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 16,
-    },
-    modalContainer: {
-        width: '100%',
-        maxHeight: '80%',
-        backgroundColor: Colors.white,
-        borderRadius: 16,
-        padding: 16,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: Colors.deepBlue,
-    },
-    modalBody: {
-        marginBottom: 12,
-    },
-    modalText: {
-        fontSize: 14,
-        lineHeight: 22,
-        color: Colors.textPrimary,
-    },
-    modalActions: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-    },
+const getStyles = (Colors: any, theme: string) => StyleSheet.create({
+    container: { flex: 1 },
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
+    headerTitle: { fontSize: 18, fontWeight: 'bold', flex: 1, marginLeft: 12 },
+    langBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+    langBtnText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+    stepContainer: { flex: 1, padding: 20 },
+    sectionTitle: { fontSize: 22, fontWeight: 'bold', marginBottom: 8 },
+    sectionSubtitle: { fontSize: 14, marginBottom: 24 },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+    card: { width: '47%', borderRadius: 20, padding: 20, alignItems: 'center', elevation: 4, ...Platform.select({ web: { boxShadow: '0px 2px 8px rgba(0,0,0,0.1)' }, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 } }) },
+    iconBg: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+    cardTitle: { fontSize: 14, fontWeight: '700', textAlign: 'center' },
+    // AI Chat Box Styles
+    dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 24 },
+    dividerLine: { flex: 1, height: 1 },
+    dividerText: { paddingHorizontal: 16, fontSize: 14, fontWeight: '600' },
+    aiCard: { width: '100%', alignItems: 'flex-start', padding: 20 },
+    aiCardTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 4 },
+    aiCardSubtitle: { fontSize: 14, marginBottom: 16 },
+    aiInput: { width: '100%', borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, minHeight: 120, textAlignVertical: 'top', marginBottom: 16 },
+    aiButton: { borderRadius: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', elevation: 4 },
+    aiButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    formGroup: { marginBottom: 20 },
+    label: { fontSize: 14, fontWeight: '600', marginBottom: 8 },
+    input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15 },
+    textArea: { minHeight: 100, textAlignVertical: 'top' },
+    mainButton: { borderRadius: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10, elevation: 4 },
+    mainButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    disabledButton: { opacity: 0.7 },
+    backButton: { alignItems: 'center', paddingVertical: 16 },
+    backButtonText: { fontSize: 14 },
+    paperContainer: { flex: 1, borderRadius: 8, padding: 24, elevation: 8, ...Platform.select({ web: { boxShadow: '0px 4px 12px rgba(0,0,0,0.2)' }, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 } }), borderWidth: 1 },
+    paperHeader: { borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 10, marginBottom: 20 },
+    paperLogo: { fontSize: 14, fontWeight: 'bold', color: '#666' },
+    paperBody: { fontSize: 16, lineHeight: 26, color: '#000', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
+    actionButtons: { flexDirection: 'row', gap: 12, marginTop: 20 },
+    actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14, borderRadius: 12 },
+    actionBtnText: { color: '#FFF', fontWeight: 'bold' },
+    resetButton: { alignItems: 'center', marginTop: 10, paddingBottom: 20 },
+    resetButtonText: { fontWeight: 'bold', fontSize: 16 }
 });

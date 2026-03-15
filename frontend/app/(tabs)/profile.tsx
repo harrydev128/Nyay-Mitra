@@ -1,477 +1,269 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    TextInput,
-    Alert,
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  Share,
+  Platform,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../constants/colors';
-import { useAppContext } from '../../context/AppContext';
-import { supabase } from '../../services/supabase';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LightColors, DarkColors } from '../../constants/colors';
+import { useAppContext } from '../../context/AppContext';
 
-export default function ProfileScreen() {
-    const router = useRouter();
-    const {
-        language,
-        setLanguage,
-        isPremium,
-        setIsPremium,
-        isLoggedIn,
-        setIsLoggedIn,
-        userEmail,
-        setUserEmail,
-    } = useAppContext();
-
-    const [password, setPassword] = useState('');
-
-    const getText = (hindi: string, english: string) => {
-        return language === 'hindi' ? hindi : english;
-    };
-
-    const handleLogin = async () => {
-        if (!userEmail || !password) {
-            Alert.alert(
-                getText('त्रुटि', 'Error'),
-                getText('कृपया ईमेल और पासवर्ड दर्ज करें', 'Please enter email and password')
-            );
-            return;
-        }
-
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email: userEmail,
-            password,
-        });
-
-        if (error) {
-            Alert.alert(
-                getText('लॉगिन असफल', 'Login Failed'),
-                getText(
-                    'ईमेल या पासवर्ड गलत है, या सर्वर में समस्या है।',
-                    error.message || 'Incorrect email or password, or server error.'
-                )
-            );
-            return;
-        }
-
-        const email = data.user?.email || userEmail;
-        setUserEmail(email);
-        setIsLoggedIn(true);
-        router.replace('/');
-    };
-
-    const handleSignup = async () => {
-        if (!userEmail || !password) {
-            Alert.alert(
-                getText('त्रुटि', 'Error'),
-                getText('कृपया ईमेल और पासवर्ड दर्ज करें', 'Please enter email and password')
-            );
-            return;
-        }
-
-        const { data, error } = await supabase.auth.signUp({
-            email: userEmail,
-            password,
-        });
-
-        if (error) {
-            Alert.alert(
-                getText('साइन अप असफल', 'Sign Up Failed'),
-                getText(
-                    'खाता नहीं बनाया जा सका। कृपया बाद में पुनः प्रयास करें।',
-                    error.message || 'Could not create account. Please try again later.'
-                )
-            );
-            return;
-        }
-
-        const email = data.user?.email || userEmail;
-        setUserEmail(email);
-        setIsLoggedIn(true);
-        router.replace('/');
-    };
-
-    const handleUpgrade = () => {
-        Alert.alert(
-            getText('प्रीमियम में अपग्रेड करें', 'Upgrade to Premium'),
-            getText('क्या आप ₹99/माह के लिए प्रीमियम प्लान लेना चाहते हैं?', 'Do you want to get the Premium plan for ₹99/month?'),
-            [
-                { text: getText('नहीं', 'No'), style: 'cancel' },
-                {
-                    text: getText('हाँ, खरीदें', 'Yes, Buy'),
-                    onPress: () => {
-                        setIsPremium(true);
-                        Alert.alert(getText('बधाई हो!', 'Congratulations!'), getText('अब आप NyayMitra प्रीमियम सदस्य हैं।', 'You are now a NyayMitra Premium member.'));
-                    }
-                }
-            ]
-        );
-    };
-
-    if (!isLoggedIn) {
-        return (
-            <SafeAreaView style={styles.container}>
-                <View style={styles.header}>
-                    <Text style={styles.headerTitle}>{getText('साइन इन करें', 'Sign In')}</Text>
-                    <TouchableOpacity
-                        style={styles.langToggle}
-                        onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')}
-                    >
-                        <Text style={styles.langText}>{language === 'hindi' ? 'EN' : 'हि'}</Text>
-                    </TouchableOpacity>
-                </View>
-                <ScrollView contentContainerStyle={styles.loginContainer}>
-                    <View style={styles.logoContainer}>
-                        <Ionicons name="shield-checkmark" size={80} color={Colors.saffron} />
-                        <Text style={styles.appName}>NyayMitra</Text>
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>{getText('ईमेल', 'Email')}</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="e.g. rahul@example.com"
-                            value={userEmail}
-                            onChangeText={setUserEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                        />
-                    </View>
-
-                    <View style={styles.inputGroup}>
-                        <Text style={styles.label}>{getText('पासवर्ड', 'Password')}</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="********"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                        />
-                    </View>
-
-                    <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-                        <Text style={styles.loginButtonText}>{getText('लॉगिन करें', 'Login')}</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.signupLink} onPress={handleSignup}>
-                        <Text style={styles.signupText}>
-                            {getText('खाता नहीं है? साइन अप करें', "Don't have an account? Sign Up")}
-                        </Text>
-                    </TouchableOpacity>
-                </ScrollView>
-            </SafeAreaView>
-        );
-    }
-
-    return (
-        <SafeAreaView style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={styles.header}>
-                    <Text style={styles.headerTitle}>{getText('प्रोफ़ाइल', 'Profile')}</Text>
-                    <TouchableOpacity
-                        style={styles.langToggle}
-                        onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')}
-                    >
-                        <Text style={styles.langText}>{language === 'hindi' ? 'EN' : 'हि'}</Text>
-                    </TouchableOpacity>
-                </View>
-
-                <View style={styles.profileSection}>
-                    <View style={styles.avatarContainer}>
-                        <Ionicons name="person-circle" size={100} color={Colors.deepBlue} />
-                    </View>
-                    <Text style={styles.userName}>{userEmail.split('@')[0]}</Text>
-                    <Text style={styles.userEmail}>{userEmail}</Text>
-
-                    <View style={[styles.badge, isPremium ? styles.premiumBadge : styles.freeBadge]}>
-                        <Text style={styles.badgeText}>
-                            {isPremium ? getText('प्रीमियम सदस्य', 'Premium Member') : getText('मुफ्त यूजर', 'Free User')}
-                        </Text>
-                    </View>
-                </View>
-
-                {!isPremium && (
-                    <View style={styles.upgradeCard}>
-                        <View style={styles.upgradeHeader}>
-                            <Ionicons name="star" size={28} color={Colors.saffron} />
-                            <Text style={styles.upgradePrice}>₹99 / {getText('माह', 'month')}</Text>
-                        </View>
-                        <Text style={styles.upgradeTitle}>{getText('प्रीमियम में अपग्रेड करें', 'Upgrade to Premium')}</Text>
-
-                        <View style={styles.featuresList}>
-                            {[
-                                { hindi: 'असीमित AI वकील एक्सेस', english: 'Unlimited AI Lawyer Access' },
-                                { hindi: 'स्मार्ट डॉक्यूमेंट जनरेटर', english: 'Smart Document Generator' },
-                                { hindi: 'हाई-क्वालिटी डॉक स्कैनर', english: 'High-Quality Doc Scanner' },
-                                { hindi: 'विज्ञापन मुक्त अनुभव', english: 'Ad-Free Experience' },
-                            ].map((f, i) => (
-                                <View key={i} style={styles.featureItem}>
-                                    <Ionicons name="checkmark-circle" size={18} color={Colors.saffron} />
-                                    <Text style={styles.featureText}>{getText(f.hindi, f.english)}</Text>
-                                </View>
-                            ))}
-                        </View>
-
-                        <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
-                            <Text style={styles.upgradeButtonText}>{getText('अभी अपग्रेड करें', 'Upgrade Now')}</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
-
-                <View style={styles.menuSection}>
-                    <TouchableOpacity style={styles.menuItem}>
-                        <Ionicons name="document-text-outline" size={24} color={Colors.textPrimary} />
-                        <Text style={styles.menuItemText}>{getText('मेरे डॉक्यूमेंट्स', 'My Documents')}</Text>
-                        <Ionicons name="chevron-forward" size={20} color={Colors.textLight} />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.menuItem}>
-                        <Ionicons name="card-outline" size={24} color={Colors.textPrimary} />
-                        <Text style={styles.menuItemText}>{getText('सदस्यता विवरण', 'Subscription Details')}</Text>
-                        <Ionicons name="chevron-forward" size={20} color={Colors.textLight} />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.menuItem}>
-                        <Ionicons name="settings-outline" size={24} color={Colors.textPrimary} />
-                        <Text style={styles.menuItemText}>{getText('सेटिंग्स', 'Settings')}</Text>
-                        <Ionicons name="chevron-forward" size={20} color={Colors.textLight} />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.logoutButton}
-                        onPress={async () => {
-                            await supabase.auth.signOut();
-                            setIsLoggedIn(false);
-                            setUserEmail('');
-                            router.replace('/');
-                        }}
-                    >
-                        <Ionicons name="log-out-outline" size={24} color={Colors.red} />
-                        <Text style={styles.logoutText}>{getText('लॉग आउट', 'Logout')}</Text>
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
-        </SafeAreaView>
-    );
+interface Stats {
+  aiQuestions: number;
+  docsGenerated: number;
+  rightsViewed: number;
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: Colors.background,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        backgroundColor: Colors.white,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: Colors.deepBlue,
-    },
-    langToggle: {
-        backgroundColor: Colors.deepBlue,
-        paddingHorizontal: 14,
-        paddingVertical: 8,
-        borderRadius: 20,
-    },
-    langText: {
-        color: Colors.white,
-        fontWeight: '600',
-        fontSize: 14,
-    },
-    loginContainer: {
-        flexGrow: 1,
-        padding: 30,
-        justifyContent: 'center',
-    },
-    logoContainer: {
-        alignItems: 'center',
-        marginBottom: 40,
-    },
-    appName: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: Colors.deepBlue,
-        marginTop: 10,
-    },
-    inputGroup: {
-        marginBottom: 20,
-    },
-    label: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: Colors.textPrimary,
-        marginBottom: 8,
-    },
-    input: {
-        backgroundColor: Colors.white,
-        borderWidth: 1,
-        borderColor: Colors.border,
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        fontSize: 16,
-    },
-    loginButton: {
-        backgroundColor: Colors.saffron,
-        borderRadius: 12,
-        paddingVertical: 16,
-        alignItems: 'center',
-        marginTop: 10,
-        elevation: 4,
-        shadowColor: Colors.saffron,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-    },
-    loginButtonText: {
-        color: Colors.white,
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    signupLink: {
-        marginTop: 20,
-        alignItems: 'center',
-    },
-    signupText: {
-        color: Colors.lightBlue,
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    profileSection: {
-        alignItems: 'center',
-        paddingVertical: 30,
-        backgroundColor: Colors.white,
-    },
-    avatarContainer: {
-        marginBottom: 16,
-    },
-    userName: {
-        fontSize: 22,
-        fontWeight: '700',
-        color: Colors.textPrimary,
-    },
-    userEmail: {
-        fontSize: 14,
-        color: Colors.textSecondary,
-        marginTop: 4,
-    },
-    badge: {
-        marginTop: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 6,
-        borderRadius: 20,
-    },
-    premiumBadge: {
-        backgroundColor: Colors.saffron + '20',
-        borderWidth: 1,
-        borderColor: Colors.saffron,
-    },
-    freeBadge: {
-        backgroundColor: Colors.textLight + '20',
-        borderWidth: 1,
-        borderColor: Colors.textLight,
-    },
-    badgeText: {
-        fontSize: 12,
-        fontWeight: 'bold',
-        color: Colors.textPrimary,
-    },
-    upgradeCard: {
-        margin: 20,
-        padding: 24,
-        backgroundColor: Colors.deepBlue,
-        borderRadius: 24,
-        elevation: 8,
-        shadowColor: Colors.deepBlue,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
-    },
-    upgradeHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
-    },
-    upgradePrice: {
-        fontSize: 18,
-        color: Colors.saffron,
-        fontWeight: '800',
-    },
-    upgradeTitle: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: Colors.white,
-        marginBottom: 20,
-    },
-    featuresList: {
-        marginBottom: 24,
-        gap: 12,
-    },
-    featureItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    featureText: {
-        color: 'rgba(255,255,255,0.9)',
-        fontSize: 15,
-        fontWeight: '500',
-    },
-    upgradeButton: {
-        backgroundColor: Colors.saffron,
-        borderRadius: 14,
-        paddingVertical: 16,
-        alignItems: 'center',
-        elevation: 4,
-    },
-    upgradeButtonText: {
-        color: Colors.white,
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    menuSection: {
-        backgroundColor: Colors.white,
-        paddingHorizontal: 20,
-        marginBottom: 30,
-    },
-    menuItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 18,
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.border,
-    },
-    menuItemText: {
-        flex: 1,
-        marginLeft: 16,
-        fontSize: 16,
-        fontWeight: '600',
-        color: Colors.textPrimary,
-    },
-    logoutButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 20,
-        marginTop: 10,
-    },
-    logoutText: {
-        marginLeft: 16,
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: Colors.red,
-    },
+export default function ProfileScreen() {
+  const { theme, toggleTheme } = useAppContext();
+  const Colors = theme === 'dark' ? DarkColors : LightColors;
+  const styles = getStyles(Colors, theme);
+  const isDark = theme === 'dark';
+  const router = useRouter();
+  const { language, setLanguage, user, isPremium, logout } = useAppContext();
+
+  // Dark mode color variables
+  const bg = isDark ? '#0D1B2A' : '#F5F5F5';
+  const cardBg = isDark ? '#1B2B3B' : '#FFFFFF';
+  const textColor = isDark ? '#FFFFFF' : '#1a237e';
+  const subText = isDark ? '#AABBCC' : '#666666';
+  const borderColor = isDark ? '#2A3F55' : '#E0E0E0';
+
+  const [referralCount, setReferralCount] = useState(0);
+  const [referralCode, setReferralCode] = useState('');
+  const [stats, setStats] = useState<Stats>({ aiQuestions: 0, docsGenerated: 0, rightsViewed: 0 });
+  const [premiumDaysLeft, setPremiumDaysLeft] = useState(0);
+
+  const getText = (hindi: string, english: string) => language === 'hindi' ? hindi : english;
+
+  const loadProfileData = useCallback(async () => {
+    try {
+      const refData = await AsyncStorage.getItem('referral_data');
+      if (refData) {
+        const parsed = JSON.parse(refData);
+        setReferralCount(parsed.referralCount || 0);
+        setReferralCode(parsed.myCode || user?.referralCode || '');
+      } else {
+        setReferralCode(user?.referralCode || '');
+      }
+
+      const aiCount = await AsyncStorage.getItem('stats_ai_count');
+      const docsCount = await AsyncStorage.getItem('stats_docs_count');
+      const rightsCount = await AsyncStorage.getItem('stats_rights_count');
+
+      setStats({
+        aiQuestions: parseInt(aiCount || '0'),
+        docsGenerated: parseInt(docsCount || '0'),
+        rightsViewed: parseInt(rightsCount || '0')
+      });
+
+      if (user?.premiumExpiry) {
+        const expiry = new Date(user.premiumExpiry);
+        const diff = Math.ceil((expiry.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+        setPremiumDaysLeft(Math.max(0, diff));
+      }
+    } catch { }
+  }, [user]);
+
+  useFocusEffect(useCallback(() => { loadProfileData(); }, [loadProfileData]));
+
+  const handleLogout = async () => {
+    Alert.alert(getText('लॉग आउट', 'Logout'), getText('क्या आप लॉग आउट करना चाहते हैं?', 'Do you want to log out?'), [
+      { text: getText('नहीं', 'No'), style: 'cancel' },
+      { text: getText('हां', 'Yes'), style: 'destructive', onPress: async () => { await logout(); router.replace('/auth/login' as any); } },
+    ]);
+  };
+
+  const handleShareReferral = async () => {
+    const code = referralCode || user?.referralCode || '';
+    const message = `NyayMitra - भारत का AI वकील! \nमेरे code ${code} से join करो और 7 दिन FREE Premium पाओ।\nDownload: https://nyaymitra.app`;
+    try { await Share.share({ message }); } catch { }
+  };
+
+  const profileCompletion = user ? Math.round(([user.name, user.email, user.referralCode].filter(Boolean).length / 3) * 100) : 0;
+
+  if (!user) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]} edges={['top']}>
+        <View style={styles.notLoggedIn}>
+          <Ionicons name="person-circle-outline" size={80} color={Colors.textLight} />
+          <Text style={[styles.notLoggedInText, { color: Colors.textSecondary }]}>{getText('लॉग इन करें', 'Please login')}</Text>
+          <TouchableOpacity style={[styles.loginButton, { backgroundColor: Colors.saffron }]} onPress={() => router.push('/auth/login' as any)}>
+            <Text style={styles.loginButtonText}>{getText('लॉग इन करें', 'Login')}</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]} edges={['top']}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={[styles.header, { backgroundColor: Colors.white, borderBottomColor: Colors.border }]}>
+          <Text style={[styles.headerTitle, { color: Colors.deepBlue }]}>{getText('प्रोफ़ाइल', 'Profile')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity style={{ marginRight: 16 }} onPress={toggleTheme}>
+              <Text style={{ fontSize: 22 }}>{theme === 'dark' ? '🌙' : '☀️'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.langToggle, { backgroundColor: Colors.deepBlue }]} onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')}>
+              <Text style={styles.langText}>{language === 'hindi' ? 'EN' : 'हि'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={[styles.userInfoCard, { backgroundColor: Colors.white }]}>
+          <View style={styles.avatarSection}>
+            <View style={[styles.progressRingOuter, { borderColor: Colors.saffron }]}>
+              <Ionicons name="person-circle" size={56} color={Colors.deepBlue} />
+            </View>
+            <Text style={[styles.progressPercent, { color: Colors.saffron }]}>{profileCompletion}%</Text>
+          </View>
+          <View style={styles.userDetails}>
+            <Text style={[styles.userName, { color: Colors.textPrimary }]}>{user.name}</Text>
+            <Text style={[styles.userEmail, { color: Colors.textSecondary }]}>{user.email}</Text>
+            <View style={[styles.planBadge, isPremium ? { backgroundColor: Colors.saffron } : { backgroundColor: Colors.textLight }]}>
+              <Text style={styles.badgeText}>{isPremium ? getText('प्रीमियम', 'Premium') : getText('मुफ्त', 'Free')}</Text>
+            </View>
+          </View>
+        </View>
+
+        {isPremium && premiumDaysLeft > 0 && (
+          <View style={[styles.premiumCountdown, { backgroundColor: theme === 'dark' ? '#2A1A0A' : '#FFF3E0' }]}>
+            <Ionicons name="diamond" size={20} color={Colors.saffron} />
+            <Text style={[styles.premiumCountdownText, { color: Colors.saffron }]}>Silver: {premiumDaysLeft} {getText('दिन बाकी', 'days left')}</Text>
+          </View>
+        )}
+
+        <View style={styles.statsSection}>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>{getText('मेरी गतिविधि', 'My Activity')}</Text>
+          <View style={styles.statsGrid}>
+            <View style={[styles.statCard, { backgroundColor: cardBg }]}><Ionicons name="chatbubbles" size={24} color={Colors.saffron} /><Text style={[styles.statNumber, { color: textColor }]}>{stats.aiQuestions}</Text><Text style={[styles.statLabel, { color: subText }]}>AI सवाल</Text></View>
+            <View style={[styles.statCard, { backgroundColor: cardBg }]}><Ionicons name="document-text" size={24} color={Colors.deepBlue} /><Text style={[styles.statNumber, { color: textColor }]}>{stats.docsGenerated}</Text><Text style={[styles.statLabel, { color: subText }]}>डॉक्यूमेंट</Text></View>
+            <View style={[styles.statCard, { backgroundColor: cardBg }]}><Ionicons name="shield-checkmark" size={24} color={Colors.green} /><Text style={[styles.statNumber, { color: textColor }]}>{stats.rightsViewed}</Text><Text style={[styles.statLabel, { color: subText }]}>अधिकार देखे</Text></View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>{getText('दोस्तों को Refer करें', 'Refer Friends')}</Text>
+          <View style={[styles.referralCard, { backgroundColor: cardBg }]}>
+            <View style={styles.referralHeader}>
+              <Ionicons name="share-social" size={24} color={Colors.saffron} />
+              <View style={styles.referralCodeContainer}>
+                <Text style={[styles.referralLabel, { color: subText }]}>{getText('आपका कोड:', 'Your Code:')}</Text>
+                <Text style={[styles.referralCode, { color: Colors.saffron, backgroundColor: Colors.background }]}>{referralCode || user.referralCode}</Text>
+              </View>
+            </View>
+            <View style={styles.referralBtns}>
+              <TouchableOpacity style={[styles.shareButton, { backgroundColor: Colors.saffron }]} onPress={handleShareReferral}><Ionicons name="share" size={18} color="#fff" /><Text style={styles.shareButtonText}>{getText('शेयर', 'Share')}</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push('/referral' as any)}><Text style={[styles.referralDetailText, { color: Colors.deepBlue }]}>{getText('विवरण →', 'Details →')}</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>{getText('प्रीमियम प्लान', 'Premium Plans')}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
+            {/* Silver Plan */}
+            <View style={[styles.planCard, { borderColor: Colors.saffron, backgroundColor: cardBg, width: 280 }]}>
+              <View style={styles.planHeader}><Text style={[styles.planName, { color: textColor }]}>SILVER</Text><Text style={[styles.planPrice, { color: subText }]}>₹49/mo</Text></View>
+              <View style={styles.planFeatures}>
+                {['40+ श्रेणी-आधारित विस्तृत अधिकार', 'अनलिमिटेड दस्तावेज तैयार करना', 'AI दस्तावेज स्कैनर एक्सेस', 'सभी हेल्पलाइन नंबर एक्सेस', 'बुकमार्क सेव करने की सुविधा'].map((f, i) => (
+                  <View key={i} style={styles.featureItem}><Ionicons name="checkmark-circle" size={16} color={Colors.saffron} /><Text style={[styles.featureText, { color: subText }]}>{f}</Text></View>
+                ))}
+              </View>
+              <TouchableOpacity style={[styles.buyButton, { backgroundColor: Colors.saffron }]} onPress={() => router.push('/premium')}><Text style={styles.buyButtonText}>Buy Silver</Text></TouchableOpacity>
+            </View>
+
+            {/* Gold Plan */}
+            <View style={[styles.planCard, { borderColor: Colors.gold, backgroundColor: cardBg, width: 280 }]}>
+              <View style={styles.planHeader}><Text style={[styles.planName, { color: textColor }]}>GOLD</Text><Text style={[styles.planPrice, { color: subText }]}>₹149/mo</Text></View>
+              <View style={styles.planFeatures}>
+                {['सिल्वर के सभी फीचर्स', 'वकील द्वारा दस्तावेज समीक्षा', 'PDF डाउनलोड सुविधा', 'स्टेप-बाय-स्टेप एक्शन प्लान', 'प्रायोरिटी सपोर्ट'].map((f, i) => (
+                  <View key={i} style={styles.featureItem}><Ionicons name="checkmark-circle" size={16} color={Colors.gold} /><Text style={[styles.featureText, { color: subText }]}>{f}</Text></View>
+                ))}
+              </View>
+              <TouchableOpacity style={[styles.buyButton, { backgroundColor: Colors.gold }]} onPress={() => router.push('/premium')}><Text style={styles.buyButtonText}>Buy Gold</Text></TouchableOpacity>
+            </View>
+
+            {/* Pro Plan */}
+            <View style={[styles.planCard, { borderColor: Colors.deepBlue, backgroundColor: cardBg, width: 280 }]}>
+              <View style={styles.planHeader}><Text style={[styles.planName, { color: textColor }]}>PRO</Text><Text style={[styles.planPrice, { color: subText }]}>₹499/mo</Text></View>
+              <View style={styles.planFeatures}>
+                {['गोल्ड के सभी फीचर्स', '1:1 वकील परामर्श', '24/7 प्रायोरिटी सपोर्ट', 'एडवांस्ड लीगल टेम्पलेट्स', 'व्हाइट-लेबल दस्तावेज'].map((f, i) => (
+                  <View key={i} style={styles.featureItem}><Ionicons name="checkmark-circle" size={16} color={Colors.deepBlue} /><Text style={[styles.featureText, { color: subText }]}>{f}</Text></View>
+                ))}
+              </View>
+              <TouchableOpacity style={[styles.buyButton, { backgroundColor: Colors.deepBlue }]} onPress={() => router.push('/premium')}><Text style={styles.buyButtonText}>Buy Pro</Text></TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+
+        <TouchableOpacity style={[styles.logoutButton, { borderColor: borderColor, backgroundColor: cardBg }]} onPress={handleLogout}>
+          <Ionicons name="log-out" size={20} color={Colors.red} />
+          <Text style={[styles.logoutText, { color: Colors.red }]}>{getText('लॉग आउट', 'Logout')}</Text>
+        </TouchableOpacity>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const getStyles = (Colors: any, theme: string) => StyleSheet.create({
+  container: { flex: 1 },
+  notLoggedIn: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
+  notLoggedInText: { textAlign: 'center', fontSize: 16, marginTop: 16 },
+  loginButton: { paddingHorizontal: 30, paddingVertical: 15, borderRadius: 12, marginTop: 20 },
+  loginButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
+  headerTitle: { fontSize: 24, fontWeight: 'bold' },
+  langToggle: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
+  langText: { color: '#fff', fontWeight: '600', fontSize: 14 },
+  userInfoCard: { margin: 16, padding: 20, borderRadius: 16, flexDirection: 'row', alignItems: 'center', elevation: 3, ...Platform.select({ web: { boxShadow: '0px 4px 12px rgba(0,0,0,0.1)' }, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 } }) },
+  avatarSection: { marginRight: 16, alignItems: 'center' },
+  progressRingOuter: { width: 72, height: 72, borderRadius: 36, borderWidth: 3, justifyContent: 'center', alignItems: 'center' },
+  progressPercent: { fontSize: 11, fontWeight: '700', marginTop: 4 },
+  userDetails: { flex: 1 },
+  userName: { fontSize: 20, fontWeight: 'bold' },
+  userEmail: { fontSize: 13, marginTop: 2 },
+  planBadge: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 16, alignSelf: 'flex-start', marginTop: 8 },
+  badgeText: { fontSize: 11, fontWeight: 'bold', color: '#fff' },
+  premiumCountdown: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginBottom: 12, padding: 12, borderRadius: 12, gap: 8 },
+  premiumCountdownText: { fontSize: 14, fontWeight: '600' },
+  statsSection: { margin: 16, marginTop: 4 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  statsGrid: { flexDirection: 'row', gap: 10 },
+  statCard: { flex: 1, borderRadius: 14, padding: 14, alignItems: 'center', elevation: 2, ...Platform.select({ web: { boxShadow: '0px 2px 8px rgba(0,0,0,0.05)' }, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 3 } }) },
+  statNumber: { fontSize: 22, fontWeight: '800', marginTop: 6 },
+  statLabel: { fontSize: 11, marginTop: 2, textAlign: 'center' },
+  section: { margin: 16, marginTop: 4 },
+  referralCard: { borderRadius: 16, padding: 16, elevation: 2, ...Platform.select({ web: { boxShadow: '0px 2px 8px rgba(0,0,0,0.1)' }, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 } }) },
+  referralHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
+  referralCodeContainer: { flex: 1, alignItems: 'center' },
+  referralLabel: { fontSize: 12 },
+  referralCode: { fontSize: 20, fontWeight: 'bold', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, marginTop: 4 },
+  referralBtns: { flexDirection: 'row', alignItems: 'center', gap: 10, justifyContent: 'space-between' },
+  shareButton: { flex: 0.7, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6 },
+  shareButtonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  referralDetailText: { fontSize: 13, fontWeight: '600' },
+  planCard: { borderRadius: 16, padding: 16, elevation: 2, borderWide: 2, ...Platform.select({ web: { boxShadow: '0px 2px 8px rgba(0,0,0,0.1)' }, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 } }), borderWidth: 2 },
+  planHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  planName: { fontSize: 16, fontWeight: 'bold' },
+  planPrice: { fontSize: 14 },
+  planFeatures: { gap: 8 },
+  featureItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  featureText: { fontSize: 13, flex: 1 },
+  buyButton: { alignItems: 'center', paddingVertical: 10, borderRadius: 10, marginTop: 12 },
+  buyButtonText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
+  logoutButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, borderRadius: 12, marginHorizontal: 16, borderWide: 1, gap: 8, borderWidth: 1 },
+  logoutText: { fontSize: 16, fontWeight: 'bold' },
 });

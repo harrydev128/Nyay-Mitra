@@ -8,17 +8,16 @@ import {
   FlatList,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
-  Keyboard,
   Alert,
+  Keyboard,
+  Pressable,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
 import * as Speech from 'expo-speech';
-import { useRouter } from 'expo-router';
-import { Colors } from '../../constants/colors';
-import { chatAPI } from '../../services/api';
+import { LightColors, DarkColors } from '../../constants/colors';
+import { chatAPI, sanitizeInput } from '../../services/api';
 import { useAppContext } from '../../context/AppContext';
 
 interface Message {
@@ -28,273 +27,121 @@ interface Message {
   timestamp: string;
 }
 
+const MessageBubble = React.memo(({ item, isUser, Colors, theme, onSpeak }: any) => {
+  const isSystemError = item.id.startsWith('error_');
+  return (
+    <View style={[styles.messageContainer, isUser ? styles.userMessage : styles.assistantMessage]}>
+      {!isUser && <View style={[styles.avatarContainer, { backgroundColor: Colors.saffron }]}><Ionicons name="shield-checkmark" size={20} color="#fff" /></View>}
+      <View style={styles.messageWrapper}>
+        <View style={[styles.messageBubble, isUser ? { backgroundColor: Colors.saffron, borderBottomRightRadius: 4 } : { backgroundColor: theme === 'dark' ? '#1E293B' : Colors.white, borderBottomLeftRadius: 4, elevation: 2, ...Platform.select({ web: { boxShadow: '0px 2px 4px rgba(0,0,0,0.1)' }, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2 } }) }]}>
+          <Text style={[styles.messageText, { color: isUser ? '#fff' : Colors.textPrimary }]}>{item.content}</Text>
+          {!isUser && !isSystemError && item.id !== 'welcome' && (
+            <TouchableOpacity style={styles.speakButton} onPress={() => onSpeak(item.content)}><Ionicons name="volume-medium-outline" size={16} color={Colors.textSecondary} /></TouchableOpacity>
+          )}
+        </View>
+        {!isUser && !isSystemError && item.id !== 'welcome' && <Text style={[styles.disclaimerText, { color: Colors.textSecondary }]}>⚠️ AI मार्गदर्शन | कानूनी सलाह नहीं</Text>}
+      </View>
+    </View>
+  );
+});
+MessageBubble.displayName = 'MessageBubble';
+
 export default function ChatScreen() {
-  const router = useRouter();
+  const { theme } = useAppContext();
+  const Colors = theme === 'dark' ? DarkColors : LightColors;
+  const { language } = useAppContext();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { language, isPremium } = useAppContext();
-  const [isRecording, setIsRecording] = useState(false);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [lastRequestTime, setLastRequestTime] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
+  const getText = useCallback((hi: string, en: string) => language === 'hindi' ? hi : en, [language]);
+
   useEffect(() => {
-    const welcomeMessage: Message = {
-      id: 'welcome',
-      role: 'assistant',
-      content: language === 'hindi'
-        ? 'नमस्ते! मैं NyayMitra हूं - आपका AI कानूनी सहायक। 🙏\n\nमुझसे कोई भी कानूनी सवाल पूछें जैसे:\n• नौकरी से निकाला गया\n• पुलिस ने गिरफ्तार किया\n• किरायेदार परेशानी\n• उपभोक्ता शिकायत\n\nआप बोलकर या लिखकर सवाल पूछ सकते हैं।'
-        : 'Hello! I am NyayMitra - your AI Legal Assistant. 🙏\n\nAsk me any legal question like:\n• Fired from job\n• Arrested by police\n• Tenant troubles\n• Consumer complaints\n\nYou can ask questions by voice or text.',
-      timestamp: new Date().toISOString(),
+    const welcome = {
+      id: 'welcome', role: 'assistant', timestamp: new Date().toISOString(),
+      content: getText('नमस्ते! मैं NyayMitra हूं। 🙏', 'Hello! I am NyayMitra. 🙏')
     };
-    setMessages([welcomeMessage]);
+    setMessages([welcome as Message]);
+  }, [language, getText]);
 
-    return () => {
-      if (recording) {
-        recording.stopAndUnloadAsync();
-      }
-    };
-  }, []);
+  const sendMessage = useCallback(async (text?: string) => {
+    const rawContent = text || inputText.trim();
+    if (!rawContent || isLoading) return;
 
-  const sendMessage = async () => {
-    if (!inputText.trim() || isLoading) return;
-
-    // Premium limit check
-    const userMessageCount = messages.filter(m => m.role === 'user').length;
-    if (!isPremium && userMessageCount >= 3) {
+    const now = Date.now();
+    if (now - lastRequestTime < 2000) {
       Alert.alert(
-        language === 'hindi' ? 'प्रीमियम आवश्यक' : 'Premium Required',
-        language === 'hindi'
-          ? 'मुफ्त उपयोगकर्ताओं के लिए मैसेज सीमा समाप्त हो गई है। कृपया असीमित पहुँच के लिए प्रीमियम में अपग्रेड करें।'
-          : 'Message limit reached for free users. Please upgrade to Premium for unlimited access.',
-        [
-          { text: language === 'hindi' ? 'अभी अपग्रेड करें' : 'Upgrade Now', onPress: () => router.push('/profile') },
-          { text: language === 'hindi' ? 'ठीक है' : 'OK' }
-        ]
+        getText('कृपया रुकें', 'Please wait'),
+        getText('आप बहुत जल्दी संदेश भेज रहे हैं। कृपया 2 सेकंड रुकें।', 'You are sending messages too quickly. Please wait 2 seconds.')
       );
       return;
     }
 
-    const userMessage: Message = {
-      id: `user_${Date.now()}`,
-      role: 'user',
-      content: inputText.trim(),
-      timestamp: new Date().toISOString(),
-    };
+    const content = sanitizeInput(rawContent);
+    if (!content) return;
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputText('');
+    const userMsg: Message = { id: `u_${Date.now()}`, role: 'user', content, timestamp: new Date().toISOString() };
+    setMessages(prev => [...prev, userMsg]);
+    if (!text) setInputText('');
     setIsLoading(true);
+    setLastRequestTime(now);
     Keyboard.dismiss();
-
     try {
-      const response = await chatAPI.sendMessage('local', userMessage.content, language);
-
-      const assistantMessage: Message = {
-        id: response.message_id || `assistant_${Date.now()}`,
+      const res = await chatAPI.sendMessage('local', content, language);
+      const assistantMsg: Message = { id: res.message_id || `a_${Date.now()}`, role: 'assistant', content: res.response, timestamp: new Date().toISOString() };
+      setMessages(prev => [...prev, assistantMsg]);
+      const stats = await AsyncStorage.getItem('stats_ai_count');
+      await AsyncStorage.setItem('stats_ai_count', (parseInt(stats || '0') + 1).toString());
+    } catch (e) {
+      if (__DEV__) console.error('Chat error:', e);
+      setMessages(prev => [...prev, {
+        id: `e_${Date.now()}`,
         role: 'assistant',
-        content: response.response,
-        timestamp: new Date().toISOString(),
-      };
+        content: getText('क्षमा करें, सर्वर से संपर्क नहीं हो पाया। कृपया इंटरनेट चेक करें।', 'Sorry, could not connect to server. Please check internet.'),
+        timestamp: new Date().toISOString()
+      }]);
+    } finally { setIsLoading(false); }
+  }, [inputText, isLoading, language, lastRequestTime, getText]);
 
-      setMessages(prev => [...prev, assistantMessage]);
-    } catch (error: any) {
-      console.log('Chat error:', error);
-      const errorMessage: Message = {
-        id: `error_${Date.now()}`,
-        role: 'assistant',
-        content: language === 'hindi'
-          ? 'माफ करें, कुछ गड़बड़ हो गई। कृपया दोबारा कोशिश करें।'
-          : 'Sorry, something went wrong. Please try again.',
-        timestamp: new Date().toISOString(),
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const speakMessage = useCallback((text: string) => Speech.speak(text, { language: language === 'hindi' ? 'hi-IN' : 'en-IN', rate: 0.9 }), [language]);
 
-  const startRecording = async () => {
-    try {
-      const { status } = await Audio.requestPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(
-          language === 'hindi' ? 'अनुमति आवश्यक' : 'Permission Required',
-          language === 'hindi'
-            ? 'वॉइस इनपुट के लिए माइक्रोफोन की अनुमति दें'
-            : 'Please allow microphone access for voice input'
-        );
-        return;
-      }
+  const clearChat = () => Alert.alert(getText('साफ करें?', 'Clear?'), getText('हटाएं?', 'Delete?'), [
+    { text: getText('नहीं', 'No'), style: 'cancel' },
+    { text: getText('हां', 'Yes'), style: 'destructive', onPress: () => setMessages([]) }
+  ]);
 
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-      });
 
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      setRecording(recording);
-      setIsRecording(true);
-    } catch (error) {
-      console.log('Recording error:', error);
-    }
-  };
-
-  const stopRecording = async () => {
-    if (!recording) return;
-
-    setIsRecording(false);
-    await recording.stopAndUnloadAsync();
-    await Audio.setAudioModeAsync({
-      allowsRecordingIOS: false,
-    });
-
-    // Note: For actual speech-to-text, you would send the audio to a transcription service
-    // For MVP, we'll show a placeholder message
-    Alert.alert(
-      language === 'hindi' ? 'वॉइस इनपुट' : 'Voice Input',
-      language === 'hindi'
-        ? 'वॉइस-टू-टेक्स्ट जल्द आ रहा है। अभी के लिए टाइप करें।'
-        : 'Voice-to-text coming soon. Please type for now.',
-      [{ text: 'OK' }]
-    );
-
-    setRecording(null);
-  };
-
-  const speakMessage = (text: string) => {
-    Speech.speak(text, {
-      language: language === 'hindi' ? 'hi-IN' : 'en-IN',
-      rate: 0.9,
-    });
-  };
-
-  const clearChat = async () => {
-    Alert.alert(
-      language === 'hindi' ? 'चैट साफ करें?' : 'Clear Chat?',
-      language === 'hindi'
-        ? 'क्या आप सभी संदेश हटाना चाहते हैं?'
-        : 'Do you want to delete all messages?',
-      [
-        { text: language === 'hindi' ? 'नहीं' : 'No', style: 'cancel' },
-        {
-          text: language === 'hindi' ? 'हां' : 'Yes',
-          style: 'destructive',
-          onPress: () => {
-            setMessages([]);
-          },
-        },
-      ]
-    );
-  };
-
-  const renderMessage = useCallback(({ item }: { item: Message }) => {
-    const isUser = item.role === 'user';
-    return (
-      <View style={[styles.messageContainer, isUser ? styles.userMessage : styles.assistantMessage]}>
-        {!isUser && (
-          <View style={styles.avatarContainer}>
-            <Ionicons name="shield-checkmark" size={20} color={Colors.white} />
-          </View>
-        )}
-        <View style={[styles.messageBubble, isUser ? styles.userBubble : styles.assistantBubble]}>
-          <Text style={[styles.messageText, isUser ? styles.userText : styles.assistantText]}>
-            {item.content}
-          </Text>
-          {!isUser && (
-            <TouchableOpacity
-              style={styles.speakButton}
-              onPress={() => speakMessage(item.content)}
-            >
-              <Ionicons name="volume-medium-outline" size={16} color={Colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    );
-  }, []);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.headerIcon}>
-            <Ionicons name="chatbubbles" size={24} color={Colors.white} />
-          </View>
-          <View>
-            <Text style={styles.headerTitle}>
-              {language === 'hindi' ? 'AI वकील' : 'AI Lawyer'}
-            </Text>
-            <Text style={styles.headerSubtitle}>
-              {language === 'hindi' ? '24/7 उपलब्ध' : 'Available 24/7'}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.clearButton} onPress={clearChat}>
-            <Ionicons name="trash-outline" size={20} color={Colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Messages */}
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.messagesList}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-        showsVerticalScrollIndicator={false}
-      />
-
-      {/* Loading Indicator */}
-      {isLoading && (
-        <View style={styles.loadingContainer}>
-          <View style={styles.loadingBubble}>
-            <ActivityIndicator size="small" color={Colors.saffron} />
-            <Text style={styles.loadingText}>
-              {language === 'hindi' ? 'सोच रहा हूं...' : 'Thinking...'}
-            </Text>
-          </View>
-        </View>
-      )}
-
-      {/* Input Area */}
-      <KeyboardAvoidingView
+    <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]} edges={['top']}>
+      <KeyboardAvoidingView 
+        style={{flex: 1}}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 80}
       >
-        <View style={styles.inputContainer}>
-          <TouchableOpacity
-            style={[styles.voiceButton, isRecording && styles.voiceButtonActive]}
-            onPress={isRecording ? stopRecording : startRecording}
-          >
-            <Ionicons
-              name={isRecording ? 'stop' : 'mic'}
-              size={24}
-              color={isRecording ? Colors.white : Colors.saffron}
-            />
-          </TouchableOpacity>
-          <TextInput
-            style={styles.input}
-            placeholder={language === 'hindi' ? 'अपना सवाल लिखें...' : 'Type your question...'}
-            placeholderTextColor={Colors.textLight}
-            value={inputText}
-            onChangeText={setInputText}
-            multiline
-            maxLength={1000}
-          />
-          <TouchableOpacity
-            style={[styles.sendButton, (!inputText.trim() || isLoading) && styles.sendButtonDisabled]}
-            onPress={sendMessage}
-            disabled={!inputText.trim() || isLoading}
-          >
-            <Ionicons name="send" size={20} color={Colors.white} />
-          </TouchableOpacity>
+        <View style={[styles.header, { backgroundColor: Colors.white, borderBottomColor: Colors.border }]}>
+          <View style={styles.headerLeft}>
+            <View style={[styles.headerIcon, { backgroundColor: Colors.saffron }]}><Ionicons name="chatbubbles" size={24} color="#fff" /></View>
+            <View><Text style={[styles.headerTitle, { color: Colors.textPrimary }]}>{getText('AI वकील', 'AI Lawyer')}</Text><Text style={[styles.headerSubtitle, { color: Colors.green }]}>{getText('ऑनलाइन', 'Online')}</Text></View>
+          </View>
+          <TouchableOpacity onPress={clearChat} style={styles.clearButton}><Ionicons name="trash-outline" size={20} color={Colors.textSecondary} /></TouchableOpacity>
+        </View>
+        <FlatList
+          ref={flatListRef} data={messages} keyExtractor={m => m.id} contentContainerStyle={styles.messagesList}
+          renderItem={({ item }) => <MessageBubble item={item} isUser={item.role === 'user'} Colors={Colors} theme={theme} onSpeak={speakMessage} />}
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          style={{flex: 1}}
+          inverted={false}
+          removeClippedSubviews={Platform.OS === 'android'}
+        />
+        {isLoading && <View style={styles.loadingContainer}><View style={[styles.loadingBubble, { backgroundColor: theme === 'dark' ? '#1E293B' : '#fff' }]}><Text style={{ color: Colors.textSecondary }}>Thinking...</Text></View></View>}
+        <View style={[styles.inputContainer, { backgroundColor: theme === 'dark' ? '#0D1B2A' : '#fff', borderTopColor: Colors.border }]}>
+          <TextInput style={[styles.input, { backgroundColor: theme === 'dark' ? '#1E293B' : Colors.background, color: Colors.textPrimary }]} placeholder={getText('लिखें...', 'Type...')} placeholderTextColor={Colors.textLight} value={inputText} onChangeText={setInputText} multiline />
+          <Pressable style={({ pressed }) => [styles.sendButton, { backgroundColor: Colors.saffron }, (!inputText.trim() || isLoading) && styles.disabledBtn, pressed && { opacity: 0.7 }]} onPress={() => sendMessage()} disabled={!inputText.trim() || isLoading}>
+            <Ionicons name="send" size={20} color="#fff" />
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -302,178 +149,27 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  headerIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.saffron,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: Colors.green,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  langButton: {
-    backgroundColor: Colors.deepBlue,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  langButtonText: {
-    color: Colors.white,
-    fontWeight: '600',
-    fontSize: 12,
-  },
-  clearButton: {
-    padding: 8,
-  },
-  messagesList: {
-    padding: 16,
-    paddingBottom: 8,
-  },
-  messageContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    alignItems: 'flex-end',
-  },
-  userMessage: {
-    justifyContent: 'flex-end',
-  },
-  assistantMessage: {
-    justifyContent: 'flex-start',
-  },
-  avatarContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.saffron,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  messageBubble: {
-    maxWidth: '80%',
-    padding: 12,
-    borderRadius: 16,
-  },
-  userBubble: {
-    backgroundColor: Colors.saffron,
-    borderBottomRightRadius: 4,
-  },
-  assistantBubble: {
-    backgroundColor: Colors.white,
-    borderBottomLeftRadius: 4,
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  messageText: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  userText: {
-    color: Colors.white,
-  },
-  assistantText: {
-    color: Colors.textPrimary,
-  },
-  speakButton: {
-    alignSelf: 'flex-end',
-    marginTop: 8,
-    padding: 4,
-  },
-  loadingContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  loadingBubble: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    padding: 12,
-    borderRadius: 16,
-    alignSelf: 'flex-start',
-    gap: 8,
-  },
-  loadingText: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    gap: 8,
-  },
-  voiceButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: Colors.saffron,
-  },
-  voiceButtonActive: {
-    backgroundColor: Colors.red,
-    borderColor: Colors.red,
-  },
-  input: {
-    flex: 1,
-    backgroundColor: Colors.background,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontSize: 15,
-    maxHeight: 100,
-    color: Colors.textPrimary,
-  },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.saffron,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendButtonDisabled: {
-    backgroundColor: Colors.textLight,
-  },
+  container: { flex: 1 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerIcon: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: '700' },
+  headerSubtitle: { fontSize: 12 },
+  clearButton: { padding: 8 },
+  messagesList: { padding: 16 },
+  messageContainer: { flexDirection: 'row', marginBottom: 16, alignItems: 'flex-end' },
+  userMessage: { justifyContent: 'flex-end' },
+  assistantMessage: { justifyContent: 'flex-start' },
+  avatarContainer: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 8 },
+  messageBubble: { maxWidth: '85%', padding: 12, borderRadius: 16 },
+  messageWrapper: { maxWidth: '80%', alignItems: 'flex-start' },
+  disclaimerText: { fontSize: 10, marginTop: 4, marginLeft: 4, fontStyle: 'italic' },
+  messageText: { fontSize: 15, lineHeight: 22 },
+  speakButton: { alignSelf: 'flex-end', marginTop: 8, padding: 4 },
+  loadingContainer: { paddingHorizontal: 16, paddingBottom: 16 },
+  loadingBubble: { padding: 12, borderRadius: 16, alignSelf: 'flex-start', elevation: 1 },
+  inputContainer: { flexDirection: 'row', alignItems: 'flex-end', padding: 12, borderTopWidth: 1, gap: 8 },
+  input: { flex: 1, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, maxHeight: 100 },
+  sendButton: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  disabledBtn: { backgroundColor: '#ccc' },
 });

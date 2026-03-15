@@ -20,14 +20,18 @@ OPENROUTER_MODEL = "openai/gpt-3.5-turbo"
 OPENROUTER_VISION_MODEL = "meta-llama/llama-3.2-11b-vision-instruct:free"
 
 SYSTEM_PROMPT = (
-    "You are NyayMitra, an expert AI legal assistant specialized in Indian law. Always respond in Hindi.\n"
-    "Give structured answers:\n\n"
-    "Explain the legal right clearly.\n\n"
-    "Mention relevant Indian Act and section number if possible.\n\n"
-    "Give practical steps the user should take.\n\n"
-    "Warn about limitations.\n\n"
-    "Always say: 'गंभीर मामलों में किसी योग्य वकील से सलाह अवश्य लें।'\n\n"
-    "Keep answers practical and specific, not generic."
+    "You are NyayMitra, India's AI legal assistant. \n"
+    "Rules:\n"
+    "- Always respond in simple Hindi (or English if user writes in English)\n"
+    "- Give practical, actionable advice\n"
+    "- Structure every response as:\n"
+    "  📋 स्थिति: (1 line summary of their problem)\n"
+    "  ⚖️ आपके अधिकार: (bullet points of applicable rights)\n"
+    "  ✅ तुरंत करें: (numbered action steps)\n"
+    "  📞 हेल्पलाइन: (relevant number)\n"
+    "  ⚠️ अस्वीकरण: यह AI मार्गदर्शन है, कानूनी सलाह नहीं। गंभीर मामलों में वकील से परामर्श लें।\n"
+    "- Keep responses concise, max 300 words\n"
+    "- Always end with the disclaimer"
 )
 
 if not OPENROUTER_API_KEY:
@@ -47,7 +51,7 @@ app.add_middleware(
 # In-memory rate limiting: max 3 requests per IP per day
 # Structure: { ip: {"date": "YYYY-MM-DD", "count": int} }
 _rate_limit_store: Dict[str, Dict[str, Any]] = {}
-MAX_REQUESTS_PER_DAY = 3
+MAX_REQUESTS_PER_DAY = 50
 
 
 async def rate_limiter(request: Request) -> None:
@@ -73,6 +77,7 @@ async def rate_limiter(request: Request) -> None:
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1)
     session_id: Optional[str] = None
+    language: Optional[str] = "hindi"
 
 
 class ChatResponse(BaseModel):
@@ -81,15 +86,18 @@ class ChatResponse(BaseModel):
 
 
 class TemplateType(str, Enum):
-    fir = "fir"
-    notice = "notice"
-    complaint = "complaint"
+    rent_notice = "rent_notice"
+    labor_complaint = "labor_complaint"
+    police_complaint = "police_complaint"
+    consumer_complaint = "consumer_complaint"
     custom = "custom"
 
 
 class DocumentRequest(BaseModel):
     template_type: TemplateType
-    details: Dict[str, Any] = Field(default_factory=dict)
+    fields: Dict[str, Any] = Field(default_factory=dict)
+    user_situation: Optional[str] = None
+    language: Optional[str] = "hindi"
 
 
 class DocumentResponse(BaseModel):
@@ -160,13 +168,22 @@ async def chat_endpoint(body: ChatRequest, request: Request) -> ChatResponse:
     Chat endpoint.
 
     Accepts:
-      { "message": "user text", "session_id": "optional" }
+      { "message": "user text", "session_id": "optional", "language": "hindi|english" }
 
     Returns:
       { "response": "AI reply", "message_id": "id" }
     """
+    language = body.language or "hi"
+
+    if language == 'en':
+        lang_instruction = "IMPORTANT: You must respond ONLY in English. Do not use Hindi at all."
+    else:
+        lang_instruction = "IMPORTANT: You must respond ONLY in Hindi. Do not use English at all."
+
+    system_prompt = f"You are NyayMitra, an AI legal assistant for Indian law. {lang_instruction} Structure every response as: situation summary, rights, actions, helpline, disclaimer."
+    
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": body.message},
     ]
 
@@ -176,31 +193,34 @@ async def chat_endpoint(body: ChatRequest, request: Request) -> ChatResponse:
     return ChatResponse(response=reply_text, message_id=message_id)
 
 
-def build_document_prompt(template_type: TemplateType, details: Dict[str, Any]) -> str:
-    """Create a Hindi prompt for document generation based on template type and details."""
+def build_document_prompt(template_type: TemplateType, fields: Dict[str, Any], user_situation: Optional[str]) -> str:
+    """Create a Hindi prompt for document generation based on template type, fields and situation."""
     base_intro = (
         "नीचे दिए गए विवरण के आधार पर एक विस्तृत लेकिन सरल हिंदी में कानूनी दस्तावेज़ तैयार करें। "
         "दस्तावेज़ औपचारिक भाषा में हो, पैराग्राफ़ साफ-साफ हों, और अंत में यह भी लिखें कि "
         "गंभीर मामलों में वास्तविक वकील से सलाह लेना ज़रूरी है।\n\n"
     )
 
-    if template_type == TemplateType.fir:
-        doc_type_line = "दस्तावेज़ प्रकार: एफआईआर (प्रथम सूचना रिपोर्ट)\n"
-    elif template_type == TemplateType.notice:
-        doc_type_line = "दस्तावेज़ प्रकार: कानूनी नोटिस\n"
-    elif template_type == TemplateType.complaint:
-        doc_type_line = "दस्तावेज़ प्रकार: कानूनी शिकायत (कम्प्लेंट)\n"
-    else:
-        doc_type_line = "दस्तावेज़ प्रकार: कस्टम कानूनी दस्तावेज़\n"
+    template_names = {
+        TemplateType.rent_notice: "किराया विवाद नोटिस",
+        TemplateType.labor_complaint: "श्रम शिकायत (Labor Complaint)",
+        TemplateType.police_complaint: "पुलिस शिकायत पत्र (Police Complaint)",
+        TemplateType.consumer_complaint: "उपभोक्ता शिकायत (Consumer Complaint)",
+        TemplateType.custom: "कस्टम कानूनी दस्तावेज़"
+    }
 
-    details_text = json.dumps(details, ensure_ascii=False, indent=2)
+    doc_type_line = f"दस्तावेज़ प्रकार: {template_names.get(template_type, 'कानूनी दस्तावेज़')}\n"
+    
+    fields_text = "दस्तावेज़ के लिए जानकारी:\n" + "\n".join([f"- {k}: {v}" for k, v in fields.items()])
+    situation_text = f"\n\nउपयोगकर्ता की स्थिति: {user_situation}" if user_situation else ""
 
     return (
-        base_intro
-        + doc_type_line
-        + "विवरण (Details):\n"
-        + details_text
-        + "\n\nपूरी तरह तैयार हिंदी दस्तावेज़ लिखें। केवल दस्तावेज़ का पाठ लौटाएँ, कोई अतिरिक्त टिप्पणी न दें।"
+        f"{base_intro}"
+        f"{doc_type_line}"
+        f"{fields_text}"
+        f"{situation_text}"
+        f"\n\nपूरी तरह तैयार हिंदी दस्तावेज़ लिखें। यह एक वास्तविक दस्तावेज़ होना चाहिए, "
+        f"केवल एक टेम्पलेट नहीं। सभी विवरणों को सही जगह पर भरें। केवल दस्तावेज़ का पाठ लौटाएँ, कोई अतिरिक्त टिप्पणी न दें।"
     )
 
 
@@ -214,15 +234,36 @@ async def generate_document_endpoint(body: DocumentRequest, request: Request) ->
     Generate a Hindi legal document.
 
     Accepts:
-      { "template_type": "fir/notice/complaint", "details": {} }
+      { "template_type": "...", "fields": {}, "user_situation": "...", "language": "hindi|english" }
 
     Returns:
       { "document": "generated text" }
     """
-    user_prompt = build_document_prompt(body.template_type, body.details)
+    language = body.language or "hindi"
+    lang_instruction = "Generate this document in Hindi" if language == "hindi" else "Generate this document in English"
+    
+    document_system_prompt = (
+        "Generate a formal Indian legal document in the user's language.\n"
+        "Format must be:\n"
+        "- Start with document title (bold, centered)\n"
+        "- Then: सेवा में, / To, [recipient designation]\n"
+        "- Then: विषय: / Subject: [one line]\n"
+        "- Then: मान्यवर/Dear Sir/Madam,\n"
+        "- Then: Body paragraphs with proper legal language\n"
+        "- Then: अतः / Therefore, [request]\n"
+        "- Then: भवदीय/Yours faithfully,\n"
+        "- Then: [Name placeholder]\n"
+        "- Then: दिनांक/Date: \n"
+        "- Write in formal, legal Hindi or English based on user language\n"
+        "- Do NOT use bullet points in the document body\n"
+        "- Write like a real lawyer wrote this letter"
+    )
+    
+    user_prompt = build_document_prompt(body.template_type, body.fields, body.user_situation)
+    user_prompt = f"{lang_instruction}. {user_prompt}"
 
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": document_system_prompt},
         {"role": "user", "content": user_prompt},
     ]
 
@@ -312,6 +353,96 @@ async def scan_document_endpoint(body: ScanDocumentRequest, request: Request) ->
 
     analysis_text = call_openrouter(fallback_messages)
     return ScanDocumentResponse(analysis=analysis_text)
+
+
+class AnalyzeDocumentRequest(BaseModel):
+    file_data: str
+    file_type: str
+    language: str
+
+
+class AnalyzeDocumentResponse(BaseModel):
+    analysis: str
+
+
+@app.post(
+    "/api/analyze-document",
+    response_model=AnalyzeDocumentResponse,
+    dependencies=[Depends(rate_limiter)],
+)
+async def analyze_document_endpoint(body: AnalyzeDocumentRequest, request: Request) -> AnalyzeDocumentResponse:
+    """
+    Analyze an Indian legal document using OpenRouter.
+    Accepts: { "file_data": "base64", "file_type": "string", "language": "string" }
+    Returns full Hindi text analysis.
+    """
+    system_prompt = (
+        "Analyze this Indian legal document and explain in simple Hindi:\n"
+        "1. यह दस्तावेज़ क्या है?\n"
+        "2. इसमें क्या लिखा है? (संक्षिप्त सारांश)\n"
+        "3. महत्वपूर्ण बातें क्या हैं?\n"
+        "4. क्या कोई खतरनाक clause है?\n"
+        "5. आगे क्या करना चाहिए?\n"
+        "6. संबंधित helpline: कौन सा नंबर call करें?"
+    )
+
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://nyaymitra.app",
+        "X-Title": "NyayMitra Backend",
+    }
+
+    mime_type = body.file_type
+    data_url = f"data:{mime_type};base64,{body.file_data}"
+
+    # Use vision model if available for images
+    if mime_type.startswith("image/"):
+        vision_payload = {
+            "model": OPENROUTER_VISION_MODEL,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f"Language: {body.language}",
+                        },
+                        {
+                            "type": "input_image",
+                            "image_url": data_url,
+                        },
+                    ],
+                },
+            ],
+        }
+
+        try:
+            resp = requests.post(
+                OPENROUTER_API_URL,
+                headers=headers,
+                json=vision_payload,
+                timeout=90,
+            )
+            if resp.ok:
+                data = resp.json()
+                content = data["choices"][0]["message"]["content"]
+                return AnalyzeDocumentResponse(analysis=content)
+        except requests.RequestException:
+            pass
+
+    # Fallback/Text-based for PDF or vision fail
+    fallback_messages = [
+        {"role": "system", "content": system_prompt},
+        {
+            "role": "user",
+            "content": f"Document content (base64) provided. Language: {body.language}. Please analyze according to instructions."
+        },
+    ]
+
+    analysis_text = call_openrouter(fallback_messages)
+    return AnalyzeDocumentResponse(analysis=analysis_text)
 
 
 if __name__ == "__main__":

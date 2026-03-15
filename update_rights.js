@@ -1,0 +1,501 @@
+const fs = require('fs');
+const path = require('path');
+
+const newRights = {
+    minimum_wage: {
+        id: 'minimum_wage_detail',
+        category_id: 'minimum_wage',
+        title_hindi: 'न्यूनतम वेतन',
+        title_english: 'Minimum Wage',
+        content_hindi: 'हर मजदूर को सरकार द्वारा तय न्यूनतम वेतन पाने का अधिकार',
+        content_english: 'Right of every worker to get minimum wage fixed by government',
+        key_rights_hindi: ['समय पर वेतन', 'कटौती से सुरक्षा', 'ओवरटाइम भुगतान', 'PF/ESI'],
+        key_rights_english: ['Timely payment', 'Protection from deduction', 'Overtime payment', 'PF/ESI'],
+        action_steps_hindi: ['Labour office में शिकायत', 'online portal shramsuvidha.gov.in'],
+        action_steps_english: ['Complain at Labour office', 'online portal shramsuvidha.gov.in'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Labour Helpline', number: '1800-11-2228' }],
+        legal_sections: ['Minimum Wages Act 1948 Section 3,12', 'Payment of Wages Act 1936']
+    },
+    maternity_rights: {
+        id: 'maternity_rights_detail',
+        category_id: 'maternity_rights',
+        title_hindi: 'मातृत्व अधिकार',
+        title_english: 'Maternity Rights',
+        content_hindi: 'गर्भवती महिला कर्मचारियों के विशेष कानूनी अधिकार',
+        content_english: 'Special legal rights of pregnant women employees',
+        key_rights_hindi: ['26 सप्ताह paid leave', 'नौकरी सुरक्षा', 'creche सुविधा', 'WFH option'],
+        key_rights_english: ['26 weeks paid leave', 'Job security', 'Creche facility', 'WFH option'],
+        action_steps_hindi: ['HR को written application दें', 'Labour Commissioner से शिकायत'],
+        action_steps_english: ['Give written application to HR', 'Complain to Labour Commissioner'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Women Helpline', number: '181' }, { name: 'Labour Helpline', number: '1800-11-2228' }],
+        legal_sections: ['Maternity Benefit Act 1961 Section 5,6,11,11A']
+    },
+    agriculture_rights: {
+        id: 'agriculture_rights_detail',
+        category_id: 'agriculture_rights',
+        title_hindi: 'कृषि अधिकार',
+        title_english: 'Agriculture Rights',
+        content_hindi: 'किसानों के भूमि और फसल से जुड़े कानूनी अधिकार',
+        content_english: 'Legal rights of farmers related to land and crops',
+        key_rights_hindi: ['MSP पर फसल बेचने का अधिकार', 'फसल बीमा', 'KCC loan', 'मुआवजा'],
+        key_rights_english: ['Right to sell crop at MSP', 'Crop insurance', 'KCC loan', 'Compensation'],
+        action_steps_hindi: ['Kisan Call Center पर call करें', 'PM Kisan portal check करें'],
+        action_steps_english: ['Call Kisan Call Center', 'Check PM Kisan portal'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Kisan Call Center', number: '1551' }, { name: 'Toll Free', number: '1800-180-1551' }],
+        legal_sections: ['Land Acquisition Act 2013', 'PMFBY', 'Constitution Article 48']
+    },
+    tribal_rights: {
+        id: 'tribal_rights_detail',
+        category_id: 'tribal_rights',
+        title_hindi: 'आदिवासी अधिकार',
+        title_english: 'Tribal Rights',
+        content_hindi: 'अनुसूचित जनजातियों के भूमि और वन अधिकार',
+        content_english: 'Land and forest rights of Scheduled Tribes',
+        key_rights_hindi: ['वन भूमि पर अधिकार', 'विस्थापन से सुरक्षा', 'आरक्षण', 'PESA rights'],
+        key_rights_english: ['Right over forest land', 'Protection from displacement', 'Reservation', 'PESA rights'],
+        action_steps_hindi: ['District Collector को application', 'Tribal Welfare dept से संपर्क'],
+        action_steps_english: ['Application to District Collector', 'Contact Tribal Welfare dept'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Tribal Helpline', number: '1800-11-0031' }],
+        legal_sections: ['Forest Rights Act 2006', 'PESA Act 1996', 'Constitution Article 244']
+    },
+    marriage_rights: {
+        id: 'marriage_rights_detail',
+        category_id: 'marriage_rights',
+        title_hindi: 'विवाह अधिकार',
+        title_english: 'Marriage Rights',
+        content_hindi: 'विवाह में दोनों पक्षों के कानूनी अधिकार',
+        content_english: 'Legal rights of both parties in marriage',
+        key_rights_hindi: ['सहमति से विवाह', 'दहेज न देने का अधिकार', 'तलाक का अधिकार', 'गुजारा भत्ता'],
+        key_rights_english: ['Marriage by consent', 'Right to not give dowry', 'Right to divorce', 'Alimony'],
+        action_steps_hindi: ['Family Court में petition', 'Legal Aid से free lawyer'],
+        action_steps_english: ['Petition in Family Court', 'Free lawyer from Legal Aid'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Women Helpline', number: '181' }, { name: 'Legal Aid', number: '15100' }],
+        legal_sections: ['Hindu Marriage Act 1955', 'Special Marriage Act 1954', 'BNS 84']
+    },
+    divorce_rights: {
+        id: 'divorce_rights_detail',
+        category_id: 'divorce_rights',
+        title_hindi: 'तलाक अधिकार',
+        title_english: 'Divorce Rights',
+        content_hindi: 'विवाह विच्छेद और उससे जुड़े कानूनी अधिकार',
+        content_english: 'Legal rights related to divorce and separation',
+        key_rights_hindi: ['गुजारा भत्ता', 'बच्चों की custody', 'संपत्ति में हिस्सा', 'पुनर्विवाह'],
+        key_rights_english: ['Alimony', 'Child custody', 'Share in property', 'Remarriage'],
+        action_steps_hindi: ['Family Court mein petition file karein', 'advocate lein'],
+        action_steps_english: ['File petition in Family Court', 'Hire an advocate'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Legal Aid', number: '15100' }, { name: 'Women Helpline', number: '181' }],
+        legal_sections: ['Hindu Marriage Act 1955 Section 13,24,25,26']
+    },
+    senior_citizen: {
+        id: 'senior_citizen_detail',
+        category_id: 'senior_citizen',
+        title_hindi: 'वरिष्ठ नागरिक',
+        title_english: 'Senior Citizen',
+        content_hindi: '60+ उम्र के नागरिकों के विशेष संरक्षण अधिकार',
+        content_english: 'Special protection rights of citizens aged 60+',
+        key_rights_hindi: ['बच्चों से भरण-पोषण', 'संपत्ति वापसी', 'सरकारी concessions'],
+        key_rights_english: ['Maintenance from children', 'Return of property', 'Government concessions'],
+        action_steps_hindi: ['SDM court mein application', 'elder helpline pe call'],
+        action_steps_english: ['Application in SDM court', 'Call elder helpline'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'ElderLine', number: '14567' }, { name: 'Helpline', number: '1800-11-0031' }],
+        legal_sections: ['Senior Citizens Act 2007 Section 4,5,6,23']
+    },
+    disability_rights: {
+        id: 'disability_rights_detail',
+        category_id: 'disability_rights',
+        title_hindi: 'दिव्यांग अधिकार',
+        title_english: 'Disability Rights',
+        content_hindi: 'शारीरिक/मानसिक रूप से दिव्यांग व्यक्तियों के विशेष अधिकार',
+        content_english: 'Special rights of physically/mentally disabled persons',
+        key_rights_hindi: ['4% आरक्षण', 'मुफ्त शिक्षा', 'सरकारी योजनाएं', 'barrier-free access'],
+        key_rights_english: ['4% reservation', 'Free education', 'Government schemes', 'Barrier-free access'],
+        action_steps_hindi: ['UDID card banwayein', 'disability certificate lein'],
+        action_steps_english: ['Get UDID card', 'Get disability certificate'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Disability Helpline', number: '1800-11-0031' }],
+        legal_sections: ['RPWD Act 2016 Section 3,16,17,32,34']
+    },
+    education_rights: {
+        id: 'education_rights_detail',
+        category_id: 'education_rights',
+        title_hindi: 'शिक्षा अधिकार',
+        title_english: 'Education Rights',
+        content_hindi: '6-14 वर्ष के बच्चों को मुफ्त और अनिवार्य शिक्षा का अधिकार',
+        content_english: 'Right to free and compulsory education for children aged 6-14',
+        key_rights_hindi: ['मुफ्त शिक्षा', 'भेदभाव रहित दाखिला', 'mid-day meal', 'शारीरिक दंड पर रोक'],
+        key_rights_english: ['Free education', 'Non-discriminatory admission', 'Mid-day meal', 'Ban on physical punishment'],
+        action_steps_hindi: ['DEO office mein complaint', 'NCPCR helpline call karein'],
+        action_steps_english: ['Complaint in DEO office', 'Call NCPCR helpline'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'NCPCR Helpline', number: '1800-11-2199' }],
+        legal_sections: ['RTE Act 2009', 'Constitution Article 21A, 45']
+    },
+    health_rights: {
+        id: 'health_rights_detail',
+        category_id: 'health_rights',
+        title_hindi: 'स्वास्थ्य अधिकार',
+        title_english: 'Health Rights',
+        content_hindi: 'हर नागरिक को बेहतर स्वास्थ्य सेवा पाने का अधिकार',
+        content_english: 'Right of every citizen to get better healthcare services',
+        key_rights_hindi: ['emergency mein free treatment', 'informed consent', 'medical records'],
+        key_rights_english: ['Free treatment in emergency', 'Informed consent', 'Medical records'],
+        action_steps_hindi: ['Hospital ombudsman', 'State Medical Council mein complaint'],
+        action_steps_english: ['Hospital ombudsman', 'Complaint in State Medical Council'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Health Helpline', number: '104' }, { name: 'Emergency', number: '112' }],
+        legal_sections: ['Consumer Protection Act 2019', 'Clinical Establishments Act 2010']
+    },
+    traffic_rules: {
+        id: 'traffic_rules_detail',
+        category_id: 'traffic_rules',
+        title_hindi: 'यातायात नियम',
+        title_english: 'Traffic Rules',
+        content_hindi: 'सड़क पर यात्रियों और वाहन चालकों के कानूनी अधिकार',
+        content_english: 'Legal rights of passengers and drivers on the road',
+        key_rights_hindi: ['challan receipt lene ka haq', 'gaadi jabti pe karan jaanna', 'raat mein mahila rok nahi'],
+        key_rights_english: ['Right to get challan receipt', 'Know reason for vehicle seizure', 'No stopping women at night'],
+        action_steps_hindi: ['Traffic police se receipt maangein', 'court mein contest karein'],
+        action_steps_english: ['Ask for receipt from traffic police', 'Contest in court'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Traffic Helpline', number: '1073' }, { name: 'Police', number: '112' }],
+        legal_sections: ['Motor Vehicles Act 1988 Section 129,130,177']
+    },
+    domestic_violence: {
+        id: 'domestic_violence_detail',
+        category_id: 'domestic_violence',
+        title_hindi: 'घरेलू हिंसा',
+        title_english: 'Domestic Violence',
+        content_hindi: 'घर में किसी भी प्रकार की हिंसा से सुरक्षा का कानूनी अधिकार',
+        content_english: 'Legal right to protection from any kind of domestic violence',
+        key_rights_hindi: ['protection order', 'ghar mein rehne ka haq', 'muawaza', 'custody'],
+        key_rights_english: ['Protection order', 'Right to reside in home', 'Compensation', 'Custody'],
+        action_steps_hindi: ['Protection Officer se milein', 'police station mein FIR'],
+        action_steps_english: ['Meet Protection Officer', 'FIR in police station'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Women Helpline', number: '181' }, { name: 'NCW', number: '7827170170' }],
+        legal_sections: ['PWDVA 2005 Section 3,12,18,19,20', 'BNS 85']
+    },
+    property_rights: {
+        id: 'property_rights_detail',
+        category_id: 'property_rights',
+        title_hindi: 'संपत्ति अधिकार',
+        title_english: 'Property Rights',
+        content_hindi: 'भारत में हर नागरिक को संपत्ति रखने और बेचने का अधिकार',
+        content_english: 'Right of every citizen in India to hold and sell property',
+        key_rights_hindi: ['property kharidne ka haq', 'illegal kabze se suraksha', 'muawaza'],
+        key_rights_english: ['Right to buy property', 'Protection from illegal possession', 'Compensation'],
+        action_steps_hindi: ['Civil court mein suit file karein', 'District Collector se milein'],
+        action_steps_english: ['File suit in Civil court', 'Meet District Collector'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Legal Aid', number: '15100' }],
+        legal_sections: ['Transfer of Property Act 1882', 'Registration Act 1908', 'Article 300A']
+    },
+    food_security: {
+        id: 'food_security_detail',
+        category_id: 'food_security',
+        title_hindi: 'खाद्य सुरक्षा',
+        title_english: 'Food Security',
+        content_hindi: 'सस्ते दाम पर खाद्यान्न पाने का कानूनी अधिकार',
+        content_english: 'Legal right to get food grains at subsidized prices',
+        key_rights_hindi: ['ration card pe anaaj', 'milavat ki shikayat', 'FSSAI se suraksha'],
+        key_rights_english: ['Grains on ration card', 'Complaint against adulteration', 'Protection from FSSAI'],
+        action_steps_hindi: ['Food Safety Officer ko complain', 'FSSAI portal pe report'],
+        action_steps_english: ['Complain to Food Safety Officer', 'Report on FSSAI portal'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Consumer Helpline', number: '1800-11-4000' }, { name: 'FSSAI', number: '1915' }],
+        legal_sections: ['National Food Security Act 2013', 'FSSAI Act 2006']
+    },
+    environment_rights: {
+        id: 'environment_rights_detail',
+        category_id: 'environment_rights',
+        title_hindi: 'पर्यावरण अधिकार',
+        title_english: 'Environment Rights',
+        content_hindi: 'स्वच्छ पर्यावरण में जीने का संवैधानिक अधिकार',
+        content_english: 'Constitutional right to live in a clean environment',
+        key_rights_hindi: ['pollution ki shikayat', 'NGT mein petition', 'muawaze ka haq'],
+        key_rights_english: ['Complaint against pollution', 'Petition in NGT', 'Right to compensation'],
+        action_steps_hindi: ['CPCB/SPCB mein complain', 'NGT mein petition file karein'],
+        action_steps_english: ['Complain to CPCB/SPCB', 'File petition in NGT'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Environment Helpline', number: '1800-11-9191' }],
+        legal_sections: ['Environment Act 1986', 'Constitution Article 21,48A,51A(g)']
+    },
+    voter_rights: {
+        id: 'voter_rights_detail',
+        category_id: 'voter_rights',
+        title_hindi: 'मतदाता अधिकार',
+        title_english: 'Voter Rights',
+        content_hindi: 'हर वयस्क नागरिक को मत देने का संवैधानिक अधिकार',
+        content_english: 'Constitutional right of every adult citizen to vote',
+        key_rights_hindi: ['voting', 'naam jodna', 'galat voting ki shikayat', 'NOTA option'],
+        key_rights_english: ['Voting', 'Add name', 'Complaint against wrong voting', 'NOTA option'],
+        action_steps_hindi: ['voters.eci.gov.in pe naam check karein', 'BLO se milein'],
+        action_steps_english: ['Check name on voters.eci.gov.in', 'Meet BLO'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Election Helpline', number: '1950' }],
+        legal_sections: ['Constitution Article 326', 'Representation of People Act 1951']
+    },
+    fir_rights: {
+        id: 'fir_rights_detail',
+        category_id: 'fir_rights',
+        title_hindi: 'FIR अधिकार',
+        title_english: 'FIR Rights',
+        content_hindi: 'अपराध की रिपोर्ट दर्ज करवाने का कानूनी अधिकार',
+        content_english: 'Legal right to file a report of a crime',
+        key_rights_hindi: ['muft FIR', 'Zero FIR', 'copy lene ka haq', 'online FIR'],
+        key_rights_english: ['Free FIR', 'Zero FIR', 'Right to get copy', 'Online FIR'],
+        action_steps_hindi: ['nearest police station jayein', 'SP ko complain karein'],
+        action_steps_english: ['Go to nearest police station', 'Complain to SP'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Police', number: '112' }, { name: 'Cyber Crime', number: '1930' }],
+        legal_sections: ['BNSS 173 (old CrPC 154)', 'BNSS 174,175']
+    },
+    witness_rights: {
+        id: 'witness_rights_detail',
+        category_id: 'witness_rights',
+        title_hindi: 'गवाह अधिकार',
+        title_english: 'Witness Rights',
+        content_hindi: 'अदालत में गवाही देने वाले व्यक्ति के संरक्षण अधिकार',
+        content_english: 'Protection rights of a person giving evidence in court',
+        key_rights_hindi: ['suraksha ka haq', 'bayan wapas lene ka haq', 'dhamki se suraksha'],
+        key_rights_english: ['Right to protection', 'Right to retract statement', 'Protection from threats'],
+        action_steps_hindi: ['Court ko likhit mein batayein', 'SP se suraksha maangein'],
+        action_steps_english: ['Inform court in writing', 'Ask SP for protection'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Police', number: '112' }, { name: 'Legal Aid', number: '15100' }],
+        legal_sections: ['Indian Evidence Act', 'Witness Protection Scheme 2018']
+    },
+    privacy_rights: {
+        id: 'privacy_rights_detail',
+        category_id: 'privacy_rights',
+        title_hindi: 'निजता अधिकार',
+        title_english: 'Privacy Rights',
+        content_hindi: 'व्यक्तिगत जानकारी और जीवन की गोपनीयता का मौलिक अधिकार',
+        content_english: 'Fundamental right to privacy of personal information and life',
+        key_rights_hindi: ['data suraksha', 'phone tapping se suraksha', 'Aadhaar data protection'],
+        key_rights_english: ['Data protection', 'Protection from phone tapping', 'Aadhaar data protection'],
+        action_steps_hindi: ['cybercrime.gov.in pe complain', 'TRAI ko report karein'],
+        action_steps_english: ['Complain at cybercrime.gov.in', 'Report to TRAI'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Cyber Helpline', number: '1930' }],
+        legal_sections: ['Constitution Article 21', 'IT Act 2000 Section 72', 'DPDP Act 2023']
+    },
+    banking_rights: {
+        id: 'banking_rights_detail',
+        category_id: 'banking_rights',
+        title_hindi: 'बैंकिंग अधिकार',
+        title_english: 'Banking Rights',
+        content_hindi: 'बैंक ग्राहकों के कानूनी अधिकार और सुरक्षा',
+        content_english: 'Legal rights and protection of bank customers',
+        key_rights_hindi: ['muft basic account', 'fraud pe muawaza', 'Ombudsman mein shikayat'],
+        key_rights_english: ['Free basic account', 'Compensation on fraud', 'Complaint to Ombudsman'],
+        action_steps_hindi: ['bankingombudsman.rbi.org.in pe complain', 'RBI helpline call'],
+        action_steps_english: ['Complain on bankingombudsman.rbi.org.in', 'Call RBI helpline'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'RBI Helpline', number: '14440' }],
+        legal_sections: ['RBI Guidelines', 'Banking Ombudsman Scheme 2006']
+    },
+    insurance_rights: {
+        id: 'insurance_rights_detail',
+        category_id: 'insurance_rights',
+        title_hindi: 'बीमा अधिकार',
+        title_english: 'Insurance Rights',
+        content_hindi: 'बीमा पॉलिसी धारकों के कानूनी संरक्षण अधिकार',
+        content_english: 'Legal protection rights of insurance policy holders',
+        key_rights_hindi: ['claim aswikaar pe appeal', 'free look period', 'IRDAI mein shikayat'],
+        key_rights_english: ['Appeal on claim rejection', 'Free look period', 'Complaint in IRDAI'],
+        action_steps_hindi: ['igms.irda.gov.in pe complain', 'Insurance Ombudsman se milein'],
+        action_steps_english: ['Complain on igms.irda.gov.in', 'Meet Insurance Ombudsman'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'IRDAI Helpline', number: '155255' }],
+        legal_sections: ['Insurance Act 1938', 'IRDAI Regulations']
+    },
+    tax_rights: {
+        id: 'tax_rights_detail',
+        category_id: 'tax_rights',
+        title_hindi: 'कर अधिकार',
+        title_english: 'Tax Rights',
+        content_hindi: 'करदाताओं के अधिकार और कर विभाग से सुरक्षा',
+        content_english: 'Rights of taxpayers and protection from tax department',
+        key_rights_hindi: ['refund ka haq', 'appeal ka haq', 'harassment se suraksha'],
+        key_rights_english: ['Right to refund', 'Right to appeal', 'Protection from harassment'],
+        action_steps_hindi: ['incometax.gov.in pe complain', 'Aayakar Seva Kendra jayein'],
+        action_steps_english: ['Complain on incometax.gov.in', 'Go to Aayakar Seva Kendra'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Tax Helpline', number: '1800-103-0025' }],
+        legal_sections: ['Income Tax Act 1961 Section 237,246,264']
+    },
+    labor_rights: {
+        id: 'labor_rights_detail',
+        category_id: 'labor_rights',
+        title_hindi: 'श्रम अधिकार',
+        title_english: 'Labor Rights',
+        content_hindi: 'कार्यस्थल पर मजदूरों और कर्मचारियों के कानूनी अधिकार',
+        content_english: 'Legal rights of workers and employees at workplace',
+        key_rights_hindi: ['PF, ESI', 'overtime payment', 'chutti', 'surakshit kaaryasthal'],
+        key_rights_english: ['PF, ESI', 'Overtime payment', 'Leave', 'Safe workplace'],
+        action_steps_hindi: ['shramsuvidha.gov.in pe complain', 'Labour Commissioner se milein'],
+        action_steps_english: ['Complain on shramsuvidha.gov.in', 'Meet Labour Commissioner'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Labour Helpline', number: '1800-11-2228' }],
+        legal_sections: ['Labour Codes 2020', 'Factories Act 1948', 'ESI Act 1948']
+    },
+    religious_rights: {
+        id: 'religious_rights_detail',
+        category_id: 'religious_rights',
+        title_hindi: 'धार्मिक अधिकार',
+        title_english: 'Religious Rights',
+        content_hindi: 'धर्म मानने और प्रचार करने का संवैधानिक मौलिक अधिकार',
+        content_english: 'Constitutional fundamental right to practice and propagate religion',
+        key_rights_hindi: ['dharm chunne ka haq', 'dharmic sthal banana', 'jabran dharm parivartan se suraksha'],
+        key_rights_english: ['Right to choose religion', 'Build religious places', 'Protection from forced conversion'],
+        action_steps_hindi: ['Police mein FIR', 'District Magistrate ko application'],
+        action_steps_english: ['FIR in Police', 'Application to District Magistrate'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Police', number: '112' }],
+        legal_sections: ['Constitution Article 25,26,27,28']
+    },
+    media_rights: {
+        id: 'media_rights_detail',
+        category_id: 'media_rights',
+        title_hindi: 'मीडिया अधिकार',
+        title_english: 'Media Rights',
+        content_hindi: 'प्रेस और मीडिया की स्वतंत्रता का संवैधानिक अधिकार',
+        content_english: 'Constitutional right to freedom of press and media',
+        key_rights_hindi: ['samachar prakashit karne ka haq', 'source gopniya rakhna', 'censorship se suraksha'],
+        key_rights_english: ['Right to publish news', 'Keep source confidential', 'Protection from censorship'],
+        action_steps_hindi: ['Press Council of India mein complain karein'],
+        action_steps_english: ['Complain in Press Council of India'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'PCI', number: '011-23715401' }],
+        legal_sections: ['Constitution Article 19(1)(a)', 'Press Council Act 1978']
+    },
+    nri_rights: {
+        id: 'nri_rights_detail',
+        category_id: 'nri_rights',
+        title_hindi: 'NRI अधिकार',
+        title_english: 'NRI Rights',
+        content_hindi: 'विदेश में रहने वाले भारतीयों के भारत में संपत्ति और अधिकार',
+        content_english: 'Property and rights of Indians living abroad in India',
+        key_rights_hindi: ['property kharidna', 'OCI card', 'voting', 'bank account'],
+        key_rights_english: ['Buy property', 'OCI card', 'Voting', 'Bank account'],
+        action_steps_hindi: ['MEA portal pe register karein', 'Indian Embassy se contact'],
+        action_steps_english: ['Register on MEA portal', 'Contact Indian Embassy'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'MEA Helpline', number: '1800-11-3090' }],
+        legal_sections: ['FEMA 1999', 'Citizenship Act 1955', 'RBI NRI Guidelines']
+    },
+    student_rights: {
+        id: 'student_rights_detail',
+        category_id: 'student_rights',
+        title_hindi: 'छात्र अधिकार',
+        title_english: 'Student Rights',
+        content_hindi: 'विद्यार्थियों के शैक्षणिक संस्थाओं में कानूनी अधिकार',
+        content_english: 'Legal rights of students in educational institutions',
+        key_rights_hindi: ['ragging se suraksha', 'TC na rokna', 'fair evaluation', 'scholarship'],
+        key_rights_english: ['Protection from ragging', 'Not stopping TC', 'Fair evaluation', 'Scholarship'],
+        action_steps_hindi: ['antiragging.in pe report', 'UGC helpline call karein'],
+        action_steps_english: ['Report on antiragging.in', 'Call UGC helpline'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Anti-Ragging', number: '1800-180-5522' }],
+        legal_sections: ['UGC Anti-Ragging Regulations', 'RTE Act 2009']
+    },
+    prisoner_rights: {
+        id: 'prisoner_rights_detail',
+        category_id: 'prisoner_rights',
+        title_hindi: 'कैदी अधिकार',
+        title_english: 'Prisoner Rights',
+        content_hindi: 'जेल में बंद व्यक्तियों के मानवाधिकार और कानूनी अधिकार',
+        content_english: 'Human rights and legal rights of persons in prison',
+        key_rights_hindi: ['vakeel se milne ka haq', 'medical suvidha', 'family se mulaaqat', 'bail'],
+        key_rights_english: ['Right to meet lawyer', 'Medical facility', 'Meeting family', 'Bail'],
+        action_steps_hindi: ['Legal Aid cell se contact', 'NHRC mein complain'],
+        action_steps_english: ['Contact Legal Aid cell', 'Complain in NHRC'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Legal Aid', number: '15100' }],
+        legal_sections: ['Prison Act 1894', 'BNSS 478', 'Constitution Article 21']
+    },
+    animal_rights: {
+        id: 'animal_rights_detail',
+        category_id: 'animal_rights',
+        title_hindi: 'पशु अधिकार',
+        title_english: 'Animal Rights',
+        content_hindi: 'जानवरों के साथ क्रूरता रोकने के कानूनी प्रावधान',
+        content_english: 'Legal provisions to prevent cruelty to animals',
+        key_rights_hindi: ['janwaron pe atyachar ki shikayat', 'aawara pashu suraksha'],
+        key_rights_english: ['Complaint against cruelty to animals', 'Stray animal protection'],
+        action_steps_hindi: ['Animal Welfare Board ko complain', 'Police mein FIR'],
+        action_steps_english: ['Complain to Animal Welfare Board', 'FIR in Police'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Animal Helpline', number: '1962' }],
+        legal_sections: ['Prevention of Cruelty to Animals Act 1960', 'BNS 325']
+    },
+    internet_rights: {
+        id: 'internet_rights_detail',
+        category_id: 'internet_rights',
+        title_hindi: 'इंटरनेट अधिकार',
+        title_english: 'Internet Rights',
+        content_hindi: 'ऑनलाइन स्वतंत्रता और डिजिटल अधिकार',
+        content_english: 'Online freedom and digital rights',
+        key_rights_hindi: ['internet band hone pe appeal', 'data suraksha', 'online abhivyakti ki swatantrata'],
+        key_rights_english: ['Appeal on internet shutdown', 'Data protection', 'Freedom of online expression'],
+        action_steps_hindi: ['cybercrime.gov.in, TRAI portal pe complain'],
+        action_steps_english: ['Complain on cybercrime.gov.in, TRAI portal'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'Cyber Helpline', number: '1930' }],
+        legal_sections: ['IT Act 2000', 'DPDP Act 2023', 'Constitution Article 19']
+    },
+    refugee_rights: {
+        id: 'refugee_rights_detail',
+        category_id: 'refugee_rights',
+        title_hindi: 'शरणार्थी अधिकार',
+        title_english: 'Refugee Rights',
+        content_hindi: 'भारत में शरण लेने वाले विदेशी नागरिकों के अधिकार',
+        content_english: 'Rights of foreign nationals seeking asylum in India',
+        key_rights_hindi: ['nishkasan se suraksha', 'UNHCR sanrakshan', 'maanviya sahayta'],
+        key_rights_english: ['Protection from eviction', 'UNHCR protection', 'Humanitarian aid'],
+        action_steps_hindi: ['UNHCR India office se contact', 'Legal Aid lein'],
+        action_steps_english: ['Contact UNHCR India office', 'Get Legal Aid'],
+        steps_hindi: [], steps_english: [],
+        emergency_contacts: [{ name: 'UNHCR', number: '011-46070400' }],
+        legal_sections: ['Foreigners Act 1946', 'Constitution Article 14,21']
+    }
+};
+
+const apiFilePath = path.join(__dirname, 'frontend/services/api.ts');
+let content = fs.readFileSync(apiFilePath, 'utf8');
+
+// Find the end of STATIC_RIGHTS_DETAILS
+const startMatch = content.indexOf('const STATIC_RIGHTS_DETAILS: Record<string, RightsDetail> = {');
+if (startMatch !== -1) {
+    // Rather than parsing AST, let's just use string replacement on the last closing brace before `export const rightsAPI`
+    const exportMatch = content.indexOf('export const rightsAPI = {');
+
+    if (exportMatch !== -1) {
+        const sectionToReplace = content.substring(startMatch, exportMatch);
+
+        // Convert newRights to string
+        const newRightsString = Object.entries(newRights).map(([key, value]) => {
+            const objStr = JSON.stringify(value, null, 4).replace(/"([^"]+)":/g, '$1:');
+            return `  ${key}: ${objStr}`;
+        }).join(',\n');
+
+        // We replace the ending '};\n\n' of the section
+        const newSection = sectionToReplace.replace(/};\s*$/, `,\n${newRightsString}\n};\n\n`);
+
+        content = content.replace(sectionToReplace, newSection);
+        fs.writeFileSync(apiFilePath, content, 'utf8');
+        console.log('Successfully updated api.ts with new rights!');
+    } else {
+        console.log('Could not find export match');
+    }
+} else {
+    console.log('Could not find STATIC_RIGHTS_DETAILS match');
+}

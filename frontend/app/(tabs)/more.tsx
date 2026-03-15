@@ -6,16 +6,21 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Colors } from '../../constants/colors';
+import { LightColors, DarkColors } from '../../constants/colors';
 import { useAppContext } from '../../context/AppContext';
 
 export default function MoreScreen() {
+  const { theme, toggleTheme } = useAppContext();
+  const Colors = theme === 'dark' ? DarkColors : LightColors;
+  const styles = getStyles(Colors);
+
   const router = useRouter();
-  const { language } = useAppContext();
+  const { language, setLanguage } = useAppContext();
 
   const getText = (hindi: string, english: string) => {
     return language === 'hindi' ? hindi : english;
@@ -46,6 +51,19 @@ export default function MoreScreen() {
           <Text style={styles.headerTitle}>
             {getText('अधिक विकल्प', 'More Options')}
           </Text>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity style={{ marginRight: 16 }} onPress={toggleTheme}>
+              <Text style={{ fontSize: 22 }}>{theme === 'dark' ? '🌙' : '☀️'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.langToggle}
+              onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')}
+            >
+              <Text style={styles.langText}>{language === 'hindi' ? 'EN' : 'हि'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Tools Section */}
@@ -134,7 +152,7 @@ export default function MoreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (Colors: any) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -291,10 +309,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 4,
-    shadowColor: Colors.saffron,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    ...Platform.select({
+      web: { boxShadow: `0px 4px 8px ${Colors.saffron}4D` },
+      default: {
+        shadowColor: Colors.saffron,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      }
+    }),
     marginBottom: 12,
   },
   appName: {
