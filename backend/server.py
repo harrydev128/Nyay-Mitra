@@ -376,15 +376,50 @@ async def analyze_document_endpoint(body: AnalyzeDocumentRequest, request: Reque
     Accepts: { "file_data": "base64", "file_type": "string", "language": "string" }
     Returns full Hindi text analysis.
     """
-    system_prompt = (
-        "Analyze this Indian legal document and explain in simple Hindi:\n"
-        "1. यह दस्तावेज़ क्या है?\n"
-        "2. इसमें क्या लिखा है? (संक्षिप्त सारांश)\n"
-        "3. महत्वपूर्ण बातें क्या हैं?\n"
-        "4. क्या कोई खतरनाक clause है?\n"
-        "5. आगे क्या करना चाहिए?\n"
-        "6. संबंधित helpline: कौन सा नंबर call करें?"
-    )
+    lang = body.language or "hindi"
+    system_prompt = f"""You are a legal document analyzer for India.
+Analyze this document/image carefully and provide 
+a complete analysis in {lang} language.
+
+Provide analysis in this exact structure:
+
+1. दस्तावेज़ का प्रकार / Document Type:
+   (What is this document - legal notice, agreement, 
+    government form, ID proof, bill, photo, etc.)
+
+2. मुख्य सामग्री / Main Content:
+   (What does it contain - key information, names, 
+    dates, amounts, terms mentioned)
+
+3. कानूनी स्थिति / Legal Status:
+   - वैध है या नहीं (Valid or Invalid - explain why)
+   - किसी stamp/signature की जरूरत है?
+   - Registration जरूरी है?
+
+4. महत्वपूर्ण बातें / Important Points:
+   - क्या कोई खतरनाक clause है?
+   - क्या कोई deadline miss हो रही है?
+   - कोई गलत जानकारी?
+
+5. आपके अधिकार / Your Rights:
+   - इस document में आपके क्या अधिकार हैं?
+   - क्या यह document legally binding है?
+
+6. तुरंत क्या करें / Immediate Action:
+   - Step 1, Step 2, Step 3
+
+7. संबंधित helpline / Related Helpline:
+   - Relevant government helpline number
+   - Relevant law/act name
+
+8. ⚠️ अस्वीकरण: यह AI विश्लेषण है, 
+   कानूनी सलाह नहीं। गंभीर मामलों में 
+   वकील से परामर्श लें।
+
+Analyze whatever is in the image - 
+legal document, photo, bill, ID, certificate, 
+government form, or anything else.
+Be specific and helpful."""
 
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",

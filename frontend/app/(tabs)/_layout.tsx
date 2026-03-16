@@ -13,7 +13,7 @@ export default function TabLayout() {
   const { language } = useAppContext();
 
   const getText = (hindi: string, english: string) => {
-    return language === 'hindi' ? hindi : english;
+    return language === 'hi' ? hindi : english;
   };
 
   return (

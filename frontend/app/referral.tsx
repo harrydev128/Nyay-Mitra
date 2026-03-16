@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import { LightColors, DarkColors } from '../constants/colors';
 import { useAppContext } from '../context/AppContext';
+import HeaderToggle from '../components/HeaderToggle';
 
 
 
@@ -48,7 +49,7 @@ export default function ReferralScreen() {
         'NYM' + Math.random().toString(36).substring(2, 8).toUpperCase();
 
     const getText = useCallback((hindi: string, english: string) =>
-        language === 'hindi' ? hindi : english, [language]);
+        language === 'hi' ? hindi : english, [language]);
 
     const loadData = async () => {
         try {
@@ -144,8 +145,10 @@ Download: https://nyaymitra.app`;
                 <TouchableOpacity onPress={() => router.back()}>
                     <Ionicons name="arrow-back" size={24} color={Colors.deepBlue} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>{getText('Refer & Earn 🎁', 'Refer & Earn 🎁')}</Text>
-                <View style={{ width: 24 }} />
+                <View style={{ flex: 1, alignItems: 'center' }}>
+                  <Text style={styles.headerTitle}>{getText('Refer & Earn 🎁', 'Refer & Earn 🎁')}</Text>
+                </View>
+                <HeaderToggle />
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>

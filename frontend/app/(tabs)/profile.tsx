@@ -44,7 +44,7 @@ export default function ProfileScreen() {
   const [stats, setStats] = useState<Stats>({ aiQuestions: 0, docsGenerated: 0, rightsViewed: 0 });
   const [premiumDaysLeft, setPremiumDaysLeft] = useState(0);
 
-  const getText = (hindi: string, english: string) => language === 'hindi' ? hindi : english;
+  const getText = (hindi: string, english: string) => language === 'hi' ? hindi : english;
 
   const loadProfileData = useCallback(async () => {
     try {
@@ -115,8 +115,8 @@ export default function ProfileScreen() {
             <TouchableOpacity style={{ marginRight: 16 }} onPress={toggleTheme}>
               <Text style={{ fontSize: 22 }}>{theme === 'dark' ? '🌙' : '☀️'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.langToggle, { backgroundColor: Colors.deepBlue }]} onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')}>
-              <Text style={styles.langText}>{language === 'hindi' ? 'EN' : 'हि'}</Text>
+            <TouchableOpacity style={[styles.langToggle, { backgroundColor: Colors.deepBlue }]} onPress={() => setLanguage(language === 'hi' ? 'english' : 'hi')}>
+              <Text style={styles.langText}>{language === 'hi' ? 'EN' : 'हि'}</Text>
             </TouchableOpacity>
           </View>
         </View>

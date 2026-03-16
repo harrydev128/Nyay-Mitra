@@ -22,7 +22,7 @@ export default function PremiumScreen() {
   const router = useRouter();
   const { language, setLanguage } = useAppContext();
 
-  const getText = (hindi: string, english: string) => language === 'hindi' ? hindi : english;
+  const getText = (hindi: string, english: string) => language === 'hi' ? hindi : english;
 
   const handlePlanSelect = useCallback((plan: string, price: number) => {
     Alert.alert(`${plan} Plan`, getText(`${plan} Plan (₹${price}/mo) के लिए भुगतान अभी प्रक्रिया में है।`, `Payment for ${plan} Plan (₹${price}/mo) is being processed.`), [
@@ -45,7 +45,7 @@ export default function PremiumScreen() {
         <Text style={[styles.headerTitle, { color: Colors.deepBlue }]}>{getText('प्रीमियम प्लान', 'Premium Plans')}</Text>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TouchableOpacity style={{ marginRight: 16 }} onPress={toggleTheme}><Text style={{ fontSize: 22 }}>{theme === 'dark' ? '🌙' : '☀️'}</Text></TouchableOpacity>
-          <TouchableOpacity style={[styles.langToggle, { backgroundColor: Colors.deepBlue }]} onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')}><Text style={styles.langText}>{language === 'hindi' ? 'EN' : 'हि'}</Text></TouchableOpacity>
+          <TouchableOpacity style={[styles.langToggle, { backgroundColor: Colors.deepBlue }]} onPress={() => setLanguage(language === 'hi' ? 'english' : 'hi')}><Text style={styles.langText}>{language === 'hi' ? 'EN' : 'हि'}</Text></TouchableOpacity>
         </View>
       </View>
       <ScrollView showsVerticalScrollIndicator={false}>

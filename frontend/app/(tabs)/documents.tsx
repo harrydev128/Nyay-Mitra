@@ -30,7 +30,7 @@ interface GeneratedDoc {
 const DocCard = React.memo(({ doc, language, Colors, onView, onDelete }: any) => {
     const formatDate = (dateStr: string) => {
         const d = new Date(dateStr);
-        return d.toLocaleDateString(language === 'hindi' ? 'hi-IN' : 'en-US', {
+        return d.toLocaleDateString(language === 'hi' ? 'hi-IN' : 'en-US', {
             day: 'numeric',
             month: 'short',
             year: 'numeric',
@@ -67,7 +67,7 @@ export default function DocumentsScreen() {
     const router = useRouter();
     const [recentDocs, setRecentDocs] = useState<GeneratedDoc[]>([]);
 
-    const getText = (hindi: string, english: string) => language === 'hindi' ? hindi : english;
+    const getText = (hindi: string, english: string) => language === 'hi' ? hindi : english;
 
     const loadRecentDocs = useCallback(async () => {
         try {
@@ -159,8 +159,8 @@ export default function DocumentsScreen() {
                         <TouchableOpacity style={{ marginRight: 16 }} onPress={toggleTheme}>
                             <Text style={{ fontSize: 22 }}>{theme === 'dark' ? '🌙' : '☀️'}</Text>
                         </TouchableOpacity>
-                        <TouchableOpacity style={[styles.langToggle, { backgroundColor: Colors.deepBlue }]} onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')}>
-                            <Text style={styles.langText}>{language === 'hindi' ? 'EN' : 'हि'}</Text>
+                        <TouchableOpacity style={[styles.langToggle, { backgroundColor: Colors.deepBlue }]} onPress={() => setLanguage(language === 'hi' ? 'english' : 'hi')}>
+                            <Text style={styles.langText}>{language === 'hi' ? 'EN' : 'हि'}</Text>
                         </TouchableOpacity>
                     </View>
                 </View>

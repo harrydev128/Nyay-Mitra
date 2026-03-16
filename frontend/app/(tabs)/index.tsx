@@ -30,6 +30,8 @@ const defaultNotifications = [
 
 export default function HomeScreen() {
   const { theme, toggleTheme, notificationPanel, setNotificationPanel, toggleNotificationPanel, language, setLanguage, user } = useAppContext();
+  const t = (hi: string, en: string) =>
+    language === 'hi' ? hi : en;
   const Colors = theme === 'dark' ? DarkColors : LightColors;
   const router = useRouter();
   const isDark = theme === 'dark';
@@ -43,7 +45,7 @@ export default function HomeScreen() {
 
   const slideAnim = useRef(new Animated.Value(-400)).current;
 
-  const getText = useCallback((hindi: string, english: string) => language === 'hindi' ? hindi : english, [language]);
+  const getText = useCallback((hindi: string, english: string) => language === 'hi' ? hindi : english, [language]);
 
   const loadNotifications = async () => {
     try {
@@ -99,12 +101,12 @@ export default function HomeScreen() {
   const notificationCount = notifications.filter(n => !n.read).length;
 
   const helplines = [
-    { num: '112', label: language === 'hi'?'पुलिस':'Police' },
-    { num: '181', label: language === 'hi'?'महिला':'Women' },
-    { num: '108', label: language === 'hi'?'एम्बुलेंस':'Ambulance' },
-    { num: '1930', label: language === 'hi'?'साइबर':'Cyber' },
-    { num: '15100', label: language === 'hi'?'कानूनी':'Legal Aid' },
-    { num: '1098', label: language === 'hi'?'बाल':'Child' },
+    { num: '112', label: language === 'hi' ? 'पुलिस' : 'Police' },
+    { num: '181', label: language === 'hi' ? 'महिला' : 'Women' },
+    { num: '108', label: language === 'hi' ? 'एम्बुलेंस' : 'Ambulance' },
+    { num: '1930', label: language === 'hi' ? 'साइबर' : 'Cyber' },
+    { num: '15100', label: language === 'hi' ? 'कानूनी' : 'Legal Aid' },
+    { num: '1098', label: language === 'hi' ? 'बाल' : 'Child' },
   ];
 
   useEffect(() => {
@@ -142,8 +144,8 @@ export default function HomeScreen() {
           <TouchableOpacity style={{ marginRight: 16 }} onPress={toggleTheme}>
             <Text style={{ fontSize: 22 }}>{theme === 'dark' ? '🌙' : '☀️'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.langToggle, { backgroundColor: Colors.deepBlue }]} onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')}>
-            <Text style={styles.langText}>{language === 'hindi' ? 'EN' : 'हि'}</Text>
+          <TouchableOpacity style={[styles.langToggle, { backgroundColor: Colors.deepBlue }]} onPress={() => setLanguage(language === 'hi' ? 'english' : 'hi')}>
+            <Text style={styles.langText}>{language === 'hi' ? 'EN' : 'हि'}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.bellBtn} onPress={toggleNotificationPanel}>
             <Ionicons name="notifications-outline" size={24} color={Colors.deepBlue} />
@@ -215,10 +217,9 @@ export default function HomeScreen() {
                 alignSelf: 'flex-start',
                 gap: 6,
               }}
-              onPress={() => router.push('/emergency')}
+              onPress={() => router.push('/(tabs)/chat')}
             >
               <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>
-                {language === 'hi' ? '🆘 अभी मदद लें' : '🆘 Get Help Now'}
               </Text>
               <Ionicons name="arrow-forward" size={18} color="#fff" />
             </TouchableOpacity>
@@ -242,10 +243,10 @@ export default function HomeScreen() {
           <Text style={{ fontSize: 32, marginRight: 12 }}>🆘</Text>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}>
-              {language === 'hi' ? 'आपातकालीन मदद' : 'Emergency Help'}
+              {t('आपातकालीन मदद', 'Emergency Help')}
             </Text>
             <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)' }}>
-              {language === 'hi' ? 'पुलिस • घर से निकाला • धोखाधड़ी • मार-पीट' : 'Police • Eviction • Fraud • Assault'}
+              {t('पुलिस • बेदखली • धोखाधड़ी • मार-पीट', 'Police • Eviction • Fraud • Assault')}
             </Text>
           </View>
           <Text style={{ fontSize: 24, color: '#fff', fontWeight: 'bold' }}>›</Text>
@@ -253,7 +254,7 @@ export default function HomeScreen() {
 
         {/* 3. Section Header */}
         <Text style={{ fontSize: 15, fontWeight: 'bold', color: textColor, paddingHorizontal: 20, marginBottom: 14 }}>
-          {language === 'hi' ? 'मुख्य सेवाएं' : 'Core Services'}
+          {t('मुख्य सेवाएं', 'Core Services')}
         </Text>
 
         {/* 4. Main Features Grid */}
@@ -273,10 +274,10 @@ export default function HomeScreen() {
           >
             <Text style={{ fontSize: 28, marginBottom: 6 }}>⚖️</Text>
             <Text style={{ fontSize: 13, fontWeight: '600', color: textColor, textAlign: 'center' }}>
-              {language === 'hi' ? 'AI वकील' : 'AI Lawyer'}
+              {t('AI वकील', 'AI Lawyer')}
             </Text>
             <Text style={{ fontSize: 10, color: subText, textAlign: 'center', marginTop: 2 }}>
-              {language === 'hi' ? 'कानूनी सवाल पूछें' : 'Ask legal questions'}
+              {t('कानूनी सवाल पूछें', 'Ask legal questions')}
             </Text>
           </TouchableOpacity>
 
@@ -295,10 +296,10 @@ export default function HomeScreen() {
           >
             <Text style={{ fontSize: 28, marginBottom: 6 }}>📋</Text>
             <Text style={{ fontSize: 13, fontWeight: '600', color: textColor, textAlign: 'center' }}>
-              {language === 'hi' ? 'अधिकार जानें' : 'Know Rights'}
+              {t('अधिकार जानें', 'Know Rights')}
             </Text>
             <Text style={{ fontSize: 10, color: subText, textAlign: 'center', marginTop: 2 }}>
-              {language === 'hi' ? '40+ कानूनी अधिकार' : '40+ legal rights'}
+              {t('40+ कानूनी अधिकार', '40+ legal rights')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -319,10 +320,10 @@ export default function HomeScreen() {
           >
             <Text style={{ fontSize: 28, marginBottom: 6 }}>📄</Text>
             <Text style={{ fontSize: 13, fontWeight: '600', color: textColor, textAlign: 'center' }}>
-              {language === 'hi' ? 'दस्तावेज़ बनाएं' : 'Make Document'}
+              {t('दस्तावेज़ बनाएं', 'Make Document')}
             </Text>
             <Text style={{ fontSize: 10, color: subText, textAlign: 'center', marginTop: 2 }}>
-              {language === 'hi' ? 'FIR, नोटिस, शिकायत' : 'FIR, Notice, Complaint'}
+              {t('FIR, नोटिस, शिकायत', 'FIR, Notice, Complaint')}
             </Text>
           </TouchableOpacity>
 
@@ -338,7 +339,7 @@ export default function HomeScreen() {
               flex: 1,
               position: 'relative',
             }}
-            onPress={() => alert(language === 'hi' ? 'जल्द आ रहा है!' : 'Coming Soon!')}
+            onPress={() => router.push('/court-tracker')}
           >
             <View style={{
               position: 'absolute',
@@ -352,10 +353,10 @@ export default function HomeScreen() {
             </View>
             <Text style={{ fontSize: 28, marginBottom: 6 }}>🏛️</Text>
             <Text style={{ fontSize: 13, fontWeight: '600', color: textColor, textAlign: 'center' }}>
-              {language === 'hi' ? 'कोर्ट तारीख' : 'Court Date'}
+              {t('कोर्ट तारीख', 'Court Date')}
             </Text>
             <Text style={{ fontSize: 10, color: subText, textAlign: 'center', marginTop: 2 }}>
-              {language === 'hi' ? 'अगली तारीख जानें' : 'Track your case'}
+              {t('केस ट्रैक करें', 'Track your case')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -363,17 +364,8 @@ export default function HomeScreen() {
         {/* 5. Section Header */}
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 14 }}>
           <Text style={{ fontSize: 15, fontWeight: 'bold', color: textColor }}>
-            {language === 'hi' ? 'नए फीचर्स' : 'New Features'}
+            {t('उपयोगी टूल्स', 'Useful Tools')}
           </Text>
-          <View style={{
-            backgroundColor: '#FF6B00',
-            borderRadius: 8,
-            paddingHorizontal: 6,
-            paddingVertical: 2,
-            marginLeft: 8,
-          }}>
-            <Text style={{ color: 'white', fontSize: 9, fontWeight: 'bold' }}>NEW</Text>
-          </View>
         </View>
 
         {/* 6. New Features Row */}
@@ -395,21 +387,41 @@ export default function HomeScreen() {
                 flex: 1,
                 position: 'relative',
               }}
-              onPress={() => alert(language === 'hi' ? 'जल्द आ रहा है!' : 'Coming Soon!')}
+              onPress={() => router.push(index === 0 ? '/rent-agreement' : index === 1 ? '/salary-calculator' : index === 2 ? '/govt-schemes' : index === 3 ? '/property-guide' : index === 4 ? '/rti-writer' : '/challan-checker')}
             >
-              <View style={{
-                position: 'absolute',
-                top: 4, right: 4,
-                backgroundColor: '#FF6B00',
-                borderRadius: 3,
-                paddingHorizontal: 3,
-                paddingVertical: 1,
-              }}>
-                <Text style={{ color: 'white', fontSize: 7, fontWeight: 'bold' }}>NEW</Text>
-              </View>
+
               <Text style={{ fontSize: 20, marginBottom: 4 }}>{feature.icon}</Text>
               <Text style={{ fontSize: 11, color: textColor, textAlign: 'center', fontWeight: '500' }}>
-                {feature.title}
+                {t('किराया\nसमझौता', 'Rent\nAgreement')}
+                {t('सरकारी\nयोजनाएं', 'Govt\nSchemes')}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 20 }}>
+          {[
+            { icon: '🏘️', title: t('संपत्ति गाइड', 'Property Guide'), route: '/property-guide' },
+            { icon: '📝', title: t('RTI आवेदन', 'RTI Application'), route: '/rti-writer' },
+            { icon: '🚦', title: t('e-Challan चेकर', 'e-Challan'), route: '/challan-checker' },
+          ].map((feature, index) => (
+            <TouchableOpacity
+              key={index}
+              style={{
+                backgroundColor: cardBg,
+                borderRadius: 12,
+                padding: 10,
+                alignItems: 'center',
+                borderWidth: 0.5,
+                borderColor: isDark ? '#2A3F55' : '#E0E0E0',
+                flex: 1,
+                position: 'relative',
+              }}
+              onPress={() => router.push(feature.route as any)}
+            >
+              <Text style={{ fontSize: 20, marginBottom: 4 }}>{feature.icon}</Text>
+              <Text style={{ fontSize: 11, color: textColor, textAlign: 'center', fontWeight: '500' }}>
+                {t('वेतन\nकैलकुलेटर', 'Salary\nCalculator')}
               </Text>
             </TouchableOpacity>
           ))}
@@ -417,7 +429,7 @@ export default function HomeScreen() {
 
         {/* 7. Section Header */}
         <Text style={{ fontSize: 15, fontWeight: 'bold', color: textColor, paddingHorizontal: 20, marginBottom: 14 }}>
-          {language === 'hi' ? 'आपातकालीन हेल्पलाइन' : 'Emergency Helplines'}
+          {t('आपातकालीन हेल्पलाइन', 'Emergency Helplines')}
         </Text>
 
         {/* 8. Helplines Horizontal Scroll */}
@@ -445,25 +457,6 @@ export default function HomeScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
-
-        {/* 9. Success Stories (placeholder) */}
-        <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
-          <Text style={{ fontSize: 15, fontWeight: 'bold', color: textColor, marginBottom: 14 }}>
-            {language === 'hi' ? 'सफलता की कहानियां' : 'Success Stories'}
-          </Text>
-          <View style={{
-            backgroundColor: cardBg,
-            borderRadius: 12,
-            padding: 16,
-            borderWidth: 0.5,
-            borderColor: isDark ? '#2A3F55' : '#E0E0E0',
-            alignItems: 'center',
-          }}>
-            <Text style={{ fontSize: 14, color: subText, textAlign: 'center' }}>
-              {language === 'hi' ? 'जल्द ही आ रहा है...' : 'Coming soon...'}
-            </Text>
-          </View>
-        </View>
 
         {/* 10. Bottom Padding */}
         <View style={{ height: 80 }} />
@@ -534,5 +527,4 @@ const styles = StyleSheet.create({
   quickSolScroll: { paddingHorizontal: 20, gap: 12 },
   disclaimer: { flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 20, alignItems: 'center', gap: 8, opacity: 0.7 },
   disclaimerText: { fontSize: 12, fontStyle: 'italic' },
-});
-
+})

@@ -19,6 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LightColors, DarkColors } from '../constants/colors';
 import { useAppContext } from '../context/AppContext';
 import { Config } from '../constants/Config';
+import HeaderToggle from '../components/HeaderToggle';
 
 interface SolutionData {
     rights: string[];
@@ -28,7 +29,7 @@ interface SolutionData {
 }
 
 export default function ProblemSolverScreen() {
-    const { theme, toggleTheme } = useAppContext();
+    const { theme } = useAppContext();
     const Colors = theme === 'dark' ? DarkColors : LightColors;
     const styles = getStyles(Colors);
     const isDark = theme === 'dark';
@@ -48,7 +49,7 @@ export default function ProblemSolverScreen() {
     const [isLoading, setIsLoading] = useState(false);
     const [solution, setSolution] = useState<SolutionData | null>(null);
 
-    const getText = useCallback((hi: string, en: string) => language === 'hindi' ? hi : en, [language]);
+    const getText = useCallback((hi: string, en: string) => language === 'hi' ? hi : en, [language]);
 
     const handleSubmit = async () => {
         if (!problemText.trim()) {
@@ -127,8 +128,10 @@ export default function ProblemSolverScreen() {
         <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
             <View style={[styles.header, { backgroundColor: cardBg, borderBottomColor: dividerColor }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}><Ionicons name="arrow-back" size={24} color={textPrimary} /></TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: textPrimary }]}>{getText('हल खोजें ⚖️', 'Solve ⚖️')}</Text>
-                <TouchableOpacity style={{ marginRight: 16 }} onPress={toggleTheme}><Text style={{ fontSize: 22 }}>{theme === 'dark' ? '🌙' : '☀️'}</Text></TouchableOpacity>
+                <View style={{ flex: 1, alignItems: 'center' }}>
+                  <Text style={[styles.headerTitle, { color: textPrimary }]}>{getText('हल खोजें ⚖️', 'Solve ⚖️')}</Text>
+                </View>
+                <HeaderToggle />
             </View>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
                 {!solution && (

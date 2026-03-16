@@ -56,7 +56,7 @@ export default function ChatScreen() {
   const [lastRequestTime, setLastRequestTime] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
-  const getText = useCallback((hi: string, en: string) => language === 'hindi' ? hi : en, [language]);
+  const getText = useCallback((hi: string, en: string) => language === 'hi' ? hi : en, [language]);
 
   useEffect(() => {
     const welcome = {
@@ -105,7 +105,7 @@ export default function ChatScreen() {
     } finally { setIsLoading(false); }
   }, [inputText, isLoading, language, lastRequestTime, getText]);
 
-  const speakMessage = useCallback((text: string) => Speech.speak(text, { language: language === 'hindi' ? 'hi-IN' : 'en-IN', rate: 0.9 }), [language]);
+  const speakMessage = useCallback((text: string) => Speech.speak(text, { language: language === 'hi' ? 'hi-IN' : 'en-IN', rate: 0.9 }), [language]);
 
   const clearChat = () => Alert.alert(getText('साफ करें?', 'Clear?'), getText('हटाएं?', 'Delete?'), [
     { text: getText('नहीं', 'No'), style: 'cancel' },

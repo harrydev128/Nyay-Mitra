@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity,
   StyleSheet, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppContext } from '../context/AppContext';
+import HeaderToggle from '../components/HeaderToggle';
 
 const EMERGENCY_DATA = [
   {
@@ -152,7 +153,7 @@ export default function EmergencyScreen() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const getText = (hi: string, en: string) => 
-    language === 'hindi' ? hi : en;
+    language === 'hi' ? hi : en;
 
   const bgColor = isDark ? '#0D1B2A' : '#F5F5F5';
   const cardBg = isDark ? '#1B2B3B' : '#FFFFFF';
@@ -175,13 +176,16 @@ export default function EmergencyScreen() {
           style={{ marginRight: 12 }}>
           <Text style={{ color: '#fff', fontSize: 24 }}>←</Text>
         </TouchableOpacity>
-        <Text style={{ 
-          color: '#FFFFFF', 
-          fontSize: 20, 
-          fontWeight: 'bold' 
-        }}>
-          {getText('🆘 आपातकालीन मदद', '🆘 Emergency Help')}
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ 
+            color: '#FFFFFF', 
+            fontSize: 20, 
+            fontWeight: 'bold' 
+          }}>
+            {getText('🆘 आपातकालीन मदद', '🆘 Emergency Help')}
+          </Text>
+        </View>
+        <HeaderToggle />
       </View>
 
       <ScrollView style={{ flex: 1 }} 
@@ -251,7 +255,7 @@ export default function EmergencyScreen() {
               }}>
                 
                 {/* Steps */}
-                {(language === 'hindi' ? item.steps_hi : item.steps_en)
+                {(language === 'hi' ? item.steps_hi : item.steps_en)
                   .map((step, index) => (
                   <View key={index} style={{
                     flexDirection: 'row',

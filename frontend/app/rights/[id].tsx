@@ -57,7 +57,7 @@ export default function RightsDetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBookmarked, setIsBookmarked] = useState(false);
 
-  const getText = useCallback((hindi: string, english: string) => language === 'hindi' ? hindi : english, [language]);
+  const getText = useCallback((hindi: string, english: string) => language === 'hi' ? hindi : english, [language]);
 
   const loadDetail = useCallback(async () => {
     try {
@@ -145,7 +145,7 @@ export default function RightsDetailScreen() {
     );
   }
 
-  const getList = (hindi: string[], english: string[]) => language === 'hindi' ? hindi : english;
+  const getList = (hindi: string[], english: string[]) => language === 'hi' ? hindi : english;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
@@ -157,8 +157,8 @@ export default function RightsDetailScreen() {
         <TouchableOpacity style={{ marginRight: 16 }} onPress={toggleTheme}>
           <Text style={{ fontSize: 22 }}>{theme === 'dark' ? '🌙' : '☀️'}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.langToggle, { backgroundColor: Colors.deepBlue }]} onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')}>
-          <Text style={styles.langText}>{language === 'hindi' ? 'EN' : 'हि'}</Text>
+        <TouchableOpacity style={[styles.langToggle, { backgroundColor: Colors.deepBlue }]} onPress={() => setLanguage(language === 'hi' ? 'english' : 'hi')}>
+          <Text style={styles.langText}>{language === 'hi' ? 'EN' : 'हि'}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.bookmarkButton} onPress={toggleBookmark}>
           <Ionicons name={isBookmarked ? 'bookmark' : 'bookmark-outline'} size={22} color={isBookmarked ? Colors.saffron : textSecondary} />

@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LightColors, DarkColors } from '../constants/colors';
 import { useAppContext } from '../context/AppContext';
+import HeaderToggle from '../components/HeaderToggle';
 
 export default function SettingsScreen() {
     const { theme, language, setLanguage } = useAppContext();
@@ -50,7 +51,7 @@ export default function SettingsScreen() {
         await AsyncStorage.setItem('notification_settings', JSON.stringify(newSettings));
     };
 
-    const getText = (hindi: string, english: string) => language === 'hindi' ? hindi : english;
+    const getText = (hindi: string, english: string) => language === 'hi' ? hindi : english;
 
     const handleRateApp = () => {
         Alert.alert(getText("ऐप रेट करें ⭐", "Rate App ⭐"), getText("क्या आप NyayMitra को Play Store पर रेट करना चाहते हैं?", "Rate on Play Store?"), [
@@ -64,8 +65,10 @@ export default function SettingsScreen() {
             <TouchableOpacity onPress={() => activeSection === 'main' ? router.back() : setActiveSection('main')} style={styles.backButton}>
                 <Ionicons name="arrow-back" size={24} color={textColor} />
             </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: textColor }]}>{title}</Text>
-            <View style={{ width: 40 }} />
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <Text style={[styles.headerTitle, { color: textColor }]}>{title}</Text>
+            </View>
+            <HeaderToggle />
         </View>
     );
 
@@ -111,7 +114,7 @@ export default function SettingsScreen() {
     }
 
     const items = [
-        { id: 'lang', icon: 'language-outline', title: getText('भाषा बदलें', 'Change Language'), sub: getText('हिंदी / English', 'Hindi / English'), action: () => setLanguage(language === 'hindi' ? 'english' : 'hindi') },
+        { id: 'lang', icon: 'language-outline', title: getText('भाषा बदलें', 'Change Language'), sub: getText('हिंदी / English', 'Hindi / English'), action: () => setLanguage(language === 'hi' ? 'english' : 'hi') },
         { id: 'notifications', icon: 'notifications-outline', title: getText('नोटिफिकेशन', 'Notifications'), sub: getText('पुश सेटिंग्स', 'Push settings'), action: () => setActiveSection('notifications') },
         { id: 'privacy', icon: 'shield-checkmark-outline', title: getText('प्राइवेसी पॉलिसी', 'Privacy Policy'), sub: getText('डेटा सुरक्षा', 'Data protection'), action: () => setActiveSection('privacy') },
         { id: 'terms', icon: 'document-text-outline', title: getText('नियम और शर्तें', 'Terms & Conditions'), sub: getText('उपयोग की शर्तें', 'Usage terms'), action: () => setActiveSection('terms') },

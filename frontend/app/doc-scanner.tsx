@@ -44,7 +44,7 @@ export default function DocScannerScreen() {
     const [previewUri, setPreviewUri] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<{ name: string; type: string } | null>(null);
 
-    const getText = (hindi: string, english: string) => language === 'hindi' ? hindi : english;
+    const getText = (hindi: string, english: string) => language === 'hi' ? hindi : english;
 
     const handleCamera = async () => {
         try {

@@ -16,6 +16,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LightColors, DarkColors } from '../constants/colors';
 import { useAppContext } from '../context/AppContext';
+import HeaderToggle from '../components/HeaderToggle';
 
 interface BookmarkItem {
     id: string;
@@ -33,7 +34,7 @@ export default function BookmarksScreen() {
     const { language } = useAppContext();
     const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
 
-    const getText = (hindi: string, english: string) => language === 'hindi' ? hindi : english;
+    const getText = (hindi: string, english: string) => language === 'hi' ? hindi : english;
 
     const loadBookmarks = useCallback(async () => {
         try {
@@ -57,8 +58,10 @@ export default function BookmarksScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={Colors.deepBlue} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: Colors.deepBlue }]}>{getText('सेव किए अधिकार 🔖', 'Saved Rights 🔖')}</Text>
-                <View style={{ width: 40 }} />
+                <View style={{ flex: 1, alignItems: 'center' }}>
+                  <Text style={[styles.headerTitle, { color: Colors.deepBlue }]}>{getText('सेव किए अधिकार 🔖', 'Saved Rights 🔖')}</Text>
+                </View>
+                <HeaderToggle />
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>

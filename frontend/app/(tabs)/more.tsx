@@ -23,7 +23,7 @@ export default function MoreScreen() {
   const { language, setLanguage } = useAppContext();
 
   const getText = (hindi: string, english: string) => {
-    return language === 'hindi' ? hindi : english;
+    return language === 'hi' ? hindi : english;
   };
 
   const emergencyNumbers = [
@@ -59,9 +59,9 @@ export default function MoreScreen() {
 
             <TouchableOpacity
               style={styles.langToggle}
-              onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')}
+              onPress={() => setLanguage(language === 'hi' ? 'english' : 'hi')}
             >
-              <Text style={styles.langText}>{language === 'hindi' ? 'EN' : 'हि'}</Text>
+              <Text style={styles.langText}>{language === 'hi' ? 'EN' : 'हि'}</Text>
             </TouchableOpacity>
           </View>
         </View>

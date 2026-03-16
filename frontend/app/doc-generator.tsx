@@ -117,7 +117,7 @@ export default function DocGeneratorScreen() {
     const [generatedDoc, setGeneratedDoc] = useState<string>('');
     const [isGenerating, setIsGenerating] = useState(false);
 
-    const getText = (hindi: string, english: string) => language === 'hindi' ? hindi : english;
+    const getText = (hindi: string, english: string) => language === 'hi' ? hindi : english;
 
     const handleSelectTemplate = (id: string) => {
         setSelectedId(id);
@@ -162,7 +162,7 @@ export default function DocGeneratorScreen() {
             const historyItem = {
                 id: `doc_${Date.now()}`,
                 type: selectedId,
-                title: TEMPLATES[language === 'hindi' ? 'hindi' : 'english'].find(t => t.id === selectedId)?.title || 'Legal Document',
+                title: TEMPLATES[language === 'hi' ? 'hindi' : 'english'].find(t => t.id === selectedId)?.title || 'Legal Document',
                 content: data.document,
                 createdAt: new Date().toISOString(),
             };
@@ -236,7 +236,7 @@ export default function DocGeneratorScreen() {
 
     const downloadPDF = async () => {
         try {
-            const title = TEMPLATES[language === 'hindi' ? 'hindi' : 'english'].find(t => t.id === selectedId)?.title || 'Document';
+            const title = TEMPLATES[language === 'hi' ? 'hindi' : 'english'].find(t => t.id === selectedId)?.title || 'Document';
             const { uri } = await Print.printToFileAsync({ html: generateHTMLDoc(title, generatedDoc) });
             await Sharing.shareAsync(uri, { mimeType: 'application/pdf' });
         } catch { Alert.alert('Error', 'Failed to save PDF'); }
@@ -246,7 +246,7 @@ export default function DocGeneratorScreen() {
         <View style={styles.stepContainer}>
             <Text style={[styles.sectionTitle, { color: textPrimary }]}>{getText('एक कानूनी टेम्पलेट चुनें', 'Select a Legal Template')}</Text>
             <View style={styles.grid}>
-                {TEMPLATES[language === 'hindi' ? 'hindi' : 'english'].map((item) => (
+                {TEMPLATES[language === 'hi' ? 'hindi' : 'english'].map((item) => (
                     <Pressable
                         key={item.id}
                         style={({ pressed }) => [styles.card, { backgroundColor: cardBg }, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
@@ -304,10 +304,14 @@ export default function DocGeneratorScreen() {
 
     const renderStep2 = () => {
         const fields = TEMPLATE_FIELDS[selectedId!];
-        const template = TEMPLATES[language === 'hindi' ? 'hindi' : 'english'].find(t => t.id === selectedId);
+        const template = TEMPLATES[language === 'hi' ? 'hindi' : 'english'].find(t => t.id === selectedId);
         return (
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.stepContainer}>
-                <ScrollView showsVerticalScrollIndicator={false}>
+                <ScrollView
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 120 }}
+                    keyboardShouldPersistTaps="handled"
+                >
                     <Text style={[styles.sectionTitle, { color: textPrimary }]}>{template?.title}</Text>
                     <Text style={[styles.sectionSubtitle, { color: textSecondary }]}>{getText('कृपया नीचे दी गई जानकारी भरें:', 'Please fill in the details below:')}</Text>
 
@@ -400,7 +404,7 @@ export default function DocGeneratorScreen() {
                         fontFamily: 'serif',
                         zIndex: 1,
                     }}>
-                        {TEMPLATES[language === 'hindi' ? 'hindi' : 'english'].find(t => t.id === selectedId)?.title || 'AI Generated Document'}
+                        {TEMPLATES[language === 'hi' ? 'hindi' : 'english'].find(t => t.id === selectedId)?.title || 'AI Generated Document'}
                     </Text>
 
                     {/* Document Body - Justified text */}
@@ -452,18 +456,30 @@ export default function DocGeneratorScreen() {
     );
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
-            <View style={[styles.header, { backgroundColor: cardBg, borderBottomColor: dividerColor }]}>
-                <TouchableOpacity onPress={() => step > 1 ? setStep(step - 1) : router.back()}>
-                    <Ionicons name="arrow-back" size={24} color={textPrimary} />
-                </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: textPrimary }]}>{getText('डॉक्यूमेंट जनरेटर', 'Doc Generator')}</Text>
-                <TouchableOpacity onPress={() => setLanguage(language === 'hindi' ? 'english' : 'hindi')} style={[styles.langBtn, { backgroundColor: Colors.deepBlue }]}><Text style={styles.langBtnText}>{language === 'hindi' ? 'EN' : 'हि'}</Text></TouchableOpacity>
-            </View>
-            {step === 1 && renderStep1()}
-            {step === 2 && renderStep2()}
-            {step === 3 && renderStep3()}
-        </SafeAreaView>
+        <KeyboardAvoidingView
+            style={{ flex: 1, backgroundColor: pageBg }}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'android' ? 0 : 90}
+        >
+            <ScrollView
+                contentContainerStyle={{ padding: 16, paddingBottom: 150 }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+            >
+                <SafeAreaView style={[styles.container, { backgroundColor: pageBg }]} edges={['top']}>
+                    <View style={[styles.header, { backgroundColor: cardBg, borderBottomColor: dividerColor }]}>
+                        <TouchableOpacity onPress={() => step > 1 ? setStep(step - 1) : router.back()}>
+                            <Ionicons name="arrow-back" size={24} color={textPrimary} />
+                        </TouchableOpacity>
+                        <Text style={[styles.headerTitle, { color: textPrimary }]}>{getText('डॉक्यूमेंट जनरेटर', 'Doc Generator')}</Text>
+                        <TouchableOpacity onPress={() => setLanguage(language === 'hi' ? 'english' : 'hi')} style={[styles.langBtn, { backgroundColor: Colors.deepBlue }]}><Text style={styles.langBtnText}>{language === 'hi' ? 'EN' : 'हि'}</Text></TouchableOpacity>
+                    </View>
+                    {step === 1 && renderStep1()}
+                    {step === 2 && renderStep2()}
+                    {step === 3 && renderStep3()}
+                </SafeAreaView>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 }
 

@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LightColors, DarkColors } from '../constants/colors';
 import { useAppContext } from '../context/AppContext';
+import HeaderToggle from '../components/HeaderToggle';
 
 interface StoryItem {
     name: string;
@@ -46,7 +47,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const StoryCard = React.memo(({ story, language, Colors, styles }: any) => {
-    const getText = (hindi: string, english: string) => language === 'hindi' ? hindi : english;
+    const getText = (hindi: string, english: string) => language === 'hi' ? hindi : english;
 
     return (
         <View style={[styles.storyCard, { backgroundColor: Colors.white }, story.isUser && styles.userStoryCard]}>
@@ -91,7 +92,7 @@ export default function SuccessStoriesScreen() {
     const [formCity, setFormCity] = useState('');
     const [formStory, setFormStory] = useState('');
 
-    const getText = useCallback((hindi: string, english: string) => language === 'hindi' ? hindi : english, [language]);
+    const getText = useCallback((hindi: string, english: string) => language === 'hi' ? hindi : english, [language]);
 
     useEffect(() => {
         loadUserStories();
@@ -142,8 +143,10 @@ export default function SuccessStoriesScreen() {
                 <TouchableOpacity onPress={() => router.back()}>
                     <Ionicons name="arrow-back" size={24} color={Colors.deepBlue} />
                 </TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: Colors.deepBlue }]}>{getText('सफलता की कहानियां ⭐', 'Success Stories ⭐')}</Text>
-                <View style={{ width: 24 }} />
+                <View style={{ flex: 1, alignItems: 'center' }}>
+                  <Text style={[styles.headerTitle, { color: Colors.deepBlue }]}>{getText('सफलता की कहानियां ⭐', 'Success Stories ⭐')}</Text>
+                </View>
+                <HeaderToggle />
             </View>
 
             <FlatList

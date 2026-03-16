@@ -138,10 +138,10 @@ const RightCard = React.memo(({ item, language, cardTitleColor, cardDescColor, c
           />
         </View>
         <Text style={[styles.categoryTitle, { color: cardTitleColor }]} numberOfLines={2}>
-          {language === 'hindi' ? item.name_hindi : item.name_english}
+          {language === 'hi' ? item.name_hindi : item.name_english}
         </Text>
         <Text style={[styles.categoryDesc, { color: cardDescColor }]} numberOfLines={3}>
-          {language === 'hindi' ? item.description_hindi : item.description_english}
+          {language === 'hi' ? item.description_hindi : item.description_english}
         </Text>
         <View style={styles.categoryArrow}>
           <Ionicons name="chevron-forward" size={20} color={item.color} />
@@ -265,7 +265,7 @@ export default function RightsScreen() {
     loadCategories();
   }, [loadCategories]);
 
-  const getText = (hindi: string, english: string) => language === 'hindi' ? hindi : english;
+  const getText = (hindi: string, english: string) => language === 'hi' ? hindi : english;
 
   const renderRightItem = useCallback(({ item }: { item: RightsCategory }) => (
     <RightCard

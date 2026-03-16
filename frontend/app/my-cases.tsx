@@ -16,6 +16,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LightColors, DarkColors } from '../constants/colors';
 import { useAppContext } from '../context/AppContext';
+import HeaderToggle from '../components/HeaderToggle';
 
 interface CaseItem {
     id: string;
@@ -33,7 +34,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const CaseCard = React.memo(({ item, language, Colors, theme, expandedId, setExpandedId, onUpdateStatus, onDelete }: any) => {
-    const getText = (hindi: string, english: string) => language === 'hindi' ? hindi : english;
+    const getText = (hindi: string, english: string) => language === 'hi' ? hindi : english;
     const isExpanded = expandedId === item.id;
 
     const formatDate = (dateStr: string) => {
@@ -92,7 +93,7 @@ export default function MyCasesScreen() {
     const [cases, setCases] = useState<CaseItem[]>([]);
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
-    const getText = (hi: string, en: string) => language === 'hindi' ? hi : en;
+    const getText = (hi: string, en: string) => language === 'hi' ? hi : en;
 
     const loadCases = useCallback(async () => {
         try {
@@ -126,8 +127,10 @@ export default function MyCasesScreen() {
         <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]} edges={['top']}>
             <View style={[styles.header, { backgroundColor: Colors.white, borderBottomColor: Colors.border }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}><Ionicons name="arrow-back" size={24} color={Colors.deepBlue} /></TouchableOpacity>
-                <Text style={[styles.headerTitle, { color: Colors.deepBlue }]}>{getText('मेरे केस 📋', 'My Cases 📋')}</Text>
-                <View style={{ width: 40 }} />
+                <View style={{ flex: 1, alignItems: 'center' }}>
+                  <Text style={[styles.headerTitle, { color: Colors.deepBlue }]}>{getText('मेरे केस 📋', 'My Cases 📋')}</Text>
+                </View>
+                <HeaderToggle />
             </View>
             <FlatList
                 data={cases} keyExtractor={m => m.id} contentContainerStyle={{ padding: 16 }}

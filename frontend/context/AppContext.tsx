@@ -18,6 +18,7 @@ interface User {
 interface AppContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
+  changeLanguage: (lang: any) => void;
   theme: Theme;
   toggleTheme: () => void;
   isPremium: boolean;
@@ -58,15 +59,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const saved = await AsyncStorage.getItem('app_language');
       if (saved === 'hindi' || saved === 'english') setLanguage(saved);
+      if (saved === 'hi') setLanguage('hindi');
+      if (saved === 'en') setLanguage('english');
     } catch (error) {
       
     }
   };
 
-  const changeLanguage = async (lang: Language) => {
-    setLanguage(lang);
+  const changeLanguage = async (lang: Language | 'hi' | 'en') => {
+    const normalized: Language =
+      lang === 'hi' ? 'hindi' :
+      lang === 'en' ? 'english' :
+      lang;
+
+    setLanguage(normalized);
     try {
-      await AsyncStorage.setItem('app_language', lang);
+      await AsyncStorage.setItem('app_language', normalized);
     } catch (error) {
       
     }
@@ -126,6 +134,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       value={{
         language,
         setLanguage: changeLanguage,
+        changeLanguage,
         theme,
         toggleTheme,
         isPremium,
