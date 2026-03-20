@@ -16,7 +16,7 @@ load_dotenv()
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-OPENROUTER_MODEL = "deepseek/deepseek-r1:free"
+OPENROUTER_MODEL = "mistralai/mistral-small-3.1-24b-instruct:free"
 OPENROUTER_VISION_MODEL = "meta-llama/llama-3.2-11b-vision-instruct:free"
 
 SYSTEM_PROMPT = (
