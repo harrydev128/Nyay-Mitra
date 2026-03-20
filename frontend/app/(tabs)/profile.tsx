@@ -177,7 +177,7 @@ export default function ProfileScreen() {
             <View style={[styles.planCard, { borderColor: Colors.saffron, backgroundColor: cardBg, width: 280 }]}>
               <View style={styles.planHeader}><Text style={[styles.planName, { color: textColor }]}>SILVER</Text><Text style={[styles.planPrice, { color: subText }]}>₹49/mo</Text></View>
               <View style={styles.planFeatures}>
-                {['40+ श्रेणी-आधारित विस्तृत अधिकार', 'अनलिमिटेड दस्तावेज तैयार करना', 'AI दस्तावेज स्कैनर एक्सेस', 'सभी हेल्पलाइन नंबर एक्सेस', 'बुकमार्क सेव करने की सुविधा'].map((f, i) => (
+                {[getText('40+ श्रेणी-आधारित विस्तृत अधिकार','40+ Rights'), getText('अनलिमिटेड दस्तावेज तैयार करना','Unlimited documents'), getText('AI दस्तावेज स्कैनर एक्सेस','AI scanner'), getText('सभी हेल्पलाइन नंबर एक्सेस','All helplines'), getText('बुकमार्क सेव करने की सुविधा','Save bookmarks')].map((f, i) => (
                   <View key={i} style={styles.featureItem}><Ionicons name="checkmark-circle" size={16} color={Colors.saffron} /><Text style={[styles.featureText, { color: subText }]}>{f}</Text></View>
                 ))}
               </View>
@@ -188,7 +188,7 @@ export default function ProfileScreen() {
             <View style={[styles.planCard, { borderColor: Colors.gold, backgroundColor: cardBg, width: 280 }]}>
               <View style={styles.planHeader}><Text style={[styles.planName, { color: textColor }]}>GOLD</Text><Text style={[styles.planPrice, { color: subText }]}>₹149/mo</Text></View>
               <View style={styles.planFeatures}>
-                {['सिल्वर के सभी फीचर्स', 'वकील द्वारा दस्तावेज समीक्षा', 'PDF डाउनलोड सुविधा', 'स्टेप-बाय-स्टेप एक्शन प्लान', 'प्रायोरिटी सपोर्ट'].map((f, i) => (
+                {[getText('सिल्वर के सभी फीचर्स','All Silver features'), getText('वकील द्वारा दस्तावेज समीक्षा','Lawyer review'), getText('PDF डाउनलोड सुविधा','PDF download'), getText('स्टेप-बाय-स्टेप एक्शन प्लान','Action plan'), getText('प्रायोरिटी सपोर्ट','Priority support')].map((f, i) => (
                   <View key={i} style={styles.featureItem}><Ionicons name="checkmark-circle" size={16} color={Colors.gold} /><Text style={[styles.featureText, { color: subText }]}>{f}</Text></View>
                 ))}
               </View>
@@ -199,7 +199,7 @@ export default function ProfileScreen() {
             <View style={[styles.planCard, { borderColor: Colors.deepBlue, backgroundColor: cardBg, width: 280 }]}>
               <View style={styles.planHeader}><Text style={[styles.planName, { color: textColor }]}>PRO</Text><Text style={[styles.planPrice, { color: subText }]}>₹499/mo</Text></View>
               <View style={styles.planFeatures}>
-                {['गोल्ड के सभी फीचर्स', '1:1 वकील परामर्श', '24/7 प्रायोरिटी सपोर्ट', 'एडवांस्ड लीगल टेम्पलेट्स', 'व्हाइट-लेबल दस्तावेज'].map((f, i) => (
+                {[getText('गोल्ड के सभी फीचर्स','All Gold features'), getText('1:1 वकील परामर्श','1:1 Lawyer consult'), getText('24/7 प्रायोरिटी सपोर्ट','24/7 Support'), getText('एडवांस्ड लीगल टेम्पलेट्स','Advanced templates'), getText('व्हाइट-लेबल दस्तावेज','White-label docs')].map((f, i) => (
                   <View key={i} style={styles.featureItem}><Ionicons name="checkmark-circle" size={16} color={Colors.deepBlue} /><Text style={[styles.featureText, { color: subText }]}>{f}</Text></View>
                 ))}
               </View>

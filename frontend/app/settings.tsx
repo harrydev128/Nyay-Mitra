@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LightColors, DarkColors } from '../constants/colors';
 import { useAppContext } from '../context/AppContext';
@@ -25,6 +25,8 @@ export default function SettingsScreen() {
     const styles = getStyles(Colors, theme);
     const isDark = theme === 'dark';
     const router = useRouter();
+    const params = useLocalSearchParams();
+    const initSection = (params.section as string) || 'main';
 
     // Dark mode color variables
     const bg = isDark ? '#0D1B2A' : '#F5F5F5';
@@ -33,7 +35,7 @@ export default function SettingsScreen() {
     const subText = isDark ? '#AABBCC' : '#666666';
     const borderColor = isDark ? '#2A3F55' : '#E0E0E0';
 
-    const [activeSection, setActiveSection] = useState<'main' | 'privacy' | 'terms' | 'help' | 'about' | 'notifications'>('main');
+    const [activeSection, setActiveSection] = useState<'main' | 'privacy' | 'terms' | 'help' | 'about' | 'notifications'>(initSection as any);
     const [notifSettings, setNotifSettings] = useState({ push: true, legal: true, referral: true });
 
     const loadSettings = useCallback(async () => {
@@ -87,8 +89,20 @@ export default function SettingsScreen() {
                             ))}
                         </View>
                     )}
-                    {activeSection === 'privacy' && <Text style={[styles.pageContent, { color: textColor }]}>प्राइवेसी पॉलिसी विवरण...</Text>}
-                    {activeSection === 'terms' && <Text style={[styles.pageContent, { color: textColor }]}>नियम और शर्तें विवरण...</Text>}
+                    {activeSection === 'privacy' && (
+                        <ScrollView>
+                          <Text style={[styles.pageContent, { color: textColor }]}>
+                            {'प्राइवेसी पॉलिसी — NyayMitra\n\nअंतिम अपडेट: मार्च 2026\n\n1. हम क्या जानकारी लेते हैं\nNyayMitra केवल जरूरी जानकारी लेता है:\n• नाम और ईमेल (login के लिए)\n• आपके सवाल और दस्तावेज (AI सेवा के लिए)\n• Device की जानकारी (app सुधार के लिए)\n\n2. जानकारी का उपयोग\n• AI कानूनी सहायता प्रदान करने के लिए\n• App सेवाएं बेहतर बनाने के लिए\n• आपकी जानकारी किसी तीसरे पक्ष को नहीं बेची जाती\n\n3. डेटा सुरक्षा\n• डेटा encrypted रहता है\n• Indian IT Act 2000 और DPDP Act 2023 का पालन\n\n4. आपके अधिकार\n• डेटा देखने का अधिकार\n• डेटा हटवाने का अधिकार\n• Account बंद करने का अधिकार\n\n5. संपर्क: support@nyaymitra.app'}
+                          </Text>
+                        </ScrollView>
+                      )}
+                    {activeSection === 'terms' && (
+                        <ScrollView>
+                          <Text style={[styles.pageContent, { color: textColor }]}>
+                            {'नियम और शर्तें — NyayMitra\n\nअंतिम अपडेट: मार्च 2026\n\n1. सेवा का उद्देश्य\nNyayMitra एक AI-आधारित कानूनी जानकारी app है।\n• यह कानूनी जागरूकता देता है\n• यह वकील का विकल्प नहीं है\n• गंभीर मामलों में वकील से सलाह लें\n\n2. उपयोग की शर्तें\n• केवल कानूनी उद्देश्यों के लिए उपयोग करें\n• गलत जानकारी देना प्रतिबंधित है\n• 18 वर्ष से कम के लिए माता-पिता की अनुमति जरूरी\n\n3. सीमाएं\n• AI की जानकारी कानूनी सलाह नहीं है\n• NyayMitra किसी नुकसान के लिए जिम्मेदार नहीं\n\n4. भारतीय कानून\nयह app Indian Contract Act 1872, IT Act 2000, Consumer Protection Act 2019 के अनुसार है।\n\n5. संपर्क: support@nyaymitra.app'}
+                          </Text>
+                        </ScrollView>
+                      )}
                     {activeSection === 'help' && (
                         <View>
                             <Text style={[styles.sectionHeading, { color: textColor }]}>{getText('FAQ', 'FAQ')}</Text>

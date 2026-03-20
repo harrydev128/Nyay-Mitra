@@ -19,6 +19,7 @@ import { LightColors, DarkColors } from '../../constants/colors';
 import { useAppContext } from '../../context/AppContext';
 import AdBanner from '../../components/AdBanner';
 import SideDrawer from '../../components/SideDrawer';
+import LanguageToggle from '../../components/LanguageToggle';
 
 const NOTIFICATION_STORAGE_KEY = 'notifications';
 
@@ -30,8 +31,7 @@ const defaultNotifications = [
 
 export default function HomeScreen() {
   const { theme, toggleTheme, notificationPanel, setNotificationPanel, toggleNotificationPanel, language, setLanguage, user } = useAppContext();
-  const t = (hi: string, en: string) =>
-    language === 'hi' ? hi : en;
+  const t = (hi: string, en: string) => language === 'hi' ? hi : en;
   const Colors = theme === 'dark' ? DarkColors : LightColors;
   const router = useRouter();
   const isDark = theme === 'dark';
@@ -87,11 +87,11 @@ export default function HomeScreen() {
 
   const handleNotificationPress = async (notification: any) => {
     try {
-      setNotificationPanel(false); // close panel
+      setNotificationPanel(false);
       const updated = notifications.map(n => n.id === notification.id ? { ...n, read: true } : n);
       setNotifications(updated);
       await AsyncStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updated));
-      router.push(notification.route as any); // navigate
+      router.push(notification.route as any);
     } catch (e) {
       if (__DEV__) console.error('Error handling notification press:', e);
       router.push(notification.route as any);
@@ -100,13 +100,26 @@ export default function HomeScreen() {
 
   const notificationCount = notifications.filter(n => !n.read).length;
 
+  // ✅ FIX: Proper titles aur working routes
+  const toolsRow1 = [
+    { icon: '🏠', title: t('किराया\nसमझौता', 'Rent\nAgreement'), route: '/rent-agreement' },
+    { icon: '💰', title: t('वेतन\nकैलकुलेटर', 'Salary\nCalculator'), route: '/salary-calculator' },
+    { icon: '🛡️', title: t('सरकारी\nयोजनाएं', 'Govt\nSchemes'), route: '/govt-schemes' },
+  ];
+
+  const toolsRow2 = [
+    { icon: '🏘️', title: t('संपत्ति गाइड', 'Property Guide'), route: '/property-guide' },
+    { icon: '📝', title: t('RTI आवेदन', 'RTI Application'), route: '/rti-writer' },
+    { icon: '🚦', title: t('e-Challan', 'e-Challan'), route: '/challan-checker' },
+  ];
+
   const helplines = [
     { num: '112', label: language === 'hi' ? 'पुलिस' : 'Police' },
-    { num: '181', label: language === 'hi' ? 'महिला' : 'Women' },
+    { num: '181', label: language === 'hi' ? 'महिला हेल्पलाइन' : 'Women Helpline' },
     { num: '108', label: language === 'hi' ? 'एम्बुलेंस' : 'Ambulance' },
-    { num: '1930', label: language === 'hi' ? 'साइबर' : 'Cyber' },
-    { num: '15100', label: language === 'hi' ? 'कानूनी' : 'Legal Aid' },
-    { num: '1098', label: language === 'hi' ? 'बाल' : 'Child' },
+    { num: '1930', label: language === 'hi' ? 'साइबर क्राइम' : 'Cyber Crime' },
+    { num: '15100', label: language === 'hi' ? 'कानूनी सहायता' : 'Legal Aid' },
+    { num: '1098', label: language === 'hi' ? 'बाल सहायता' : 'Child Help' },
   ];
 
   useEffect(() => {
@@ -124,7 +137,6 @@ export default function HomeScreen() {
       if (__DEV__) console.error('Error calling number:', e);
     }
   }, []);
-
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]} edges={['top']}>
@@ -144,9 +156,7 @@ export default function HomeScreen() {
           <TouchableOpacity style={{ marginRight: 16 }} onPress={toggleTheme}>
             <Text style={{ fontSize: 22 }}>{theme === 'dark' ? '🌙' : '☀️'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.langToggle, { backgroundColor: Colors.deepBlue }]} onPress={() => setLanguage(language === 'hi' ? 'english' : 'hi')}>
-            <Text style={styles.langText}>{language === 'hi' ? 'EN' : 'हि'}</Text>
-          </TouchableOpacity>
+          <LanguageToggle />
           <TouchableOpacity style={styles.bellBtn} onPress={toggleNotificationPanel}>
             <Ionicons name="notifications-outline" size={24} color={Colors.deepBlue} />
             {notificationCount > 0 && (
@@ -161,9 +171,9 @@ export default function HomeScreen() {
       {/* Notification Panel */}
       <Animated.View style={[styles.notifPanel, { backgroundColor: Colors.cardBackground, transform: [{ translateY: slideAnim }] }]}>
         <View style={[styles.notifHeader, { borderBottomColor: Colors.border }]}>
-          <Text style={[styles.notifTitle, { color: Colors.textPrimary }]}>{getText('सूचनाएं', 'Notifications')}</Text>
+          <Text style={[styles.notifTitle, { color: Colors.textPrimary }]}>{t('सूचनाएं', 'Notifications')}</Text>
           <TouchableOpacity onPress={markAllRead}>
-            <Text style={[styles.markReadText, { color: Colors.lightBlue }]}>{getText('सभी पढ़ें', 'Mark all read')}</Text>
+            <Text style={[styles.markReadText, { color: Colors.lightBlue }]}>{t('सभी पढ़ें', 'Mark all read')}</Text>
           </TouchableOpacity>
         </View>
         <ScrollView style={{ maxHeight: 300 }}>
@@ -178,7 +188,7 @@ export default function HomeScreen() {
           ))}
           {notifications.length === 0 && (
             <View style={{ padding: 20, alignItems: 'center' }}>
-              <Text style={{ color: Colors.textSecondary }}>{getText('कोई सूचना नहीं', 'No notifications')}</Text>
+              <Text style={{ color: Colors.textSecondary }}>{t('कोई सूचना नहीं', 'No notifications')}</Text>
             </View>
           )}
         </ScrollView>
@@ -204,7 +214,7 @@ export default function HomeScreen() {
               {language === 'hi' ? `नमस्ते, ${username}! 👋` : `Hello, ${username}! 👋`}
             </Text>
             <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginBottom: 14 }}>
-              {language === 'hi' ? 'आज आपकी कैसे मदद करें?' : 'How can we help today?'}
+              {t('आज आपकी कैसे मदद करें?', 'How can we help today?')}
             </Text>
             <TouchableOpacity
               style={{
@@ -219,8 +229,6 @@ export default function HomeScreen() {
               }}
               onPress={() => router.push('/(tabs)/chat')}
             >
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>
-              </Text>
               <Ionicons name="arrow-forward" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
@@ -259,17 +267,8 @@ export default function HomeScreen() {
 
         {/* 4. Main Features Grid */}
         <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 20 }}>
-          {/* AI Vakeel */}
           <TouchableOpacity
-            style={{
-              backgroundColor: cardBg,
-              borderRadius: 12,
-              padding: 14,
-              alignItems: 'center',
-              borderWidth: 0.5,
-              borderColor: isDark ? '#2A3F55' : '#E0E0E0',
-              flex: 1,
-            }}
+            style={{ backgroundColor: cardBg, borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 0.5, borderColor: isDark ? '#2A3F55' : '#E0E0E0', flex: 1 }}
             onPress={() => router.push('/(tabs)/chat')}
           >
             <Text style={{ fontSize: 28, marginBottom: 6 }}>⚖️</Text>
@@ -281,17 +280,8 @@ export default function HomeScreen() {
             </Text>
           </TouchableOpacity>
 
-          {/* Rights */}
           <TouchableOpacity
-            style={{
-              backgroundColor: cardBg,
-              borderRadius: 12,
-              padding: 14,
-              alignItems: 'center',
-              borderWidth: 0.5,
-              borderColor: isDark ? '#2A3F55' : '#E0E0E0',
-              flex: 1,
-            }}
+            style={{ backgroundColor: cardBg, borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 0.5, borderColor: isDark ? '#2A3F55' : '#E0E0E0', flex: 1 }}
             onPress={() => router.push('/(tabs)/rights')}
           >
             <Text style={{ fontSize: 28, marginBottom: 6 }}>📋</Text>
@@ -305,17 +295,8 @@ export default function HomeScreen() {
         </View>
 
         <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 20 }}>
-          {/* Documents */}
           <TouchableOpacity
-            style={{
-              backgroundColor: cardBg,
-              borderRadius: 12,
-              padding: 14,
-              alignItems: 'center',
-              borderWidth: 0.5,
-              borderColor: isDark ? '#2A3F55' : '#E0E0E0',
-              flex: 1,
-            }}
+            style={{ backgroundColor: cardBg, borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 0.5, borderColor: isDark ? '#2A3F55' : '#E0E0E0', flex: 1 }}
             onPress={() => router.push('/(tabs)/documents')}
           >
             <Text style={{ fontSize: 28, marginBottom: 6 }}>📄</Text>
@@ -327,28 +308,11 @@ export default function HomeScreen() {
             </Text>
           </TouchableOpacity>
 
-          {/* Court Tracker */}
           <TouchableOpacity
-            style={{
-              backgroundColor: cardBg,
-              borderRadius: 12,
-              padding: 14,
-              alignItems: 'center',
-              borderWidth: 0.5,
-              borderColor: isDark ? '#2A3F55' : '#E0E0E0',
-              flex: 1,
-              position: 'relative',
-            }}
+            style={{ backgroundColor: cardBg, borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 0.5, borderColor: isDark ? '#2A3F55' : '#E0E0E0', flex: 1, position: 'relative' }}
             onPress={() => router.push('/court-tracker')}
           >
-            <View style={{
-              position: 'absolute',
-              top: 6, right: 6,
-              backgroundColor: '#FF6B00',
-              borderRadius: 4,
-              paddingHorizontal: 4,
-              paddingVertical: 2,
-            }}>
+            <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: '#FF6B00', borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2 }}>
               <Text style={{ color: 'white', fontSize: 8, fontWeight: 'bold' }}>NEW</Text>
             </View>
             <Text style={{ fontSize: 28, marginBottom: 6 }}>🏛️</Text>
@@ -361,78 +325,48 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 5. Section Header */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginBottom: 14 }}>
-          <Text style={{ fontSize: 15, fontWeight: 'bold', color: textColor }}>
-            {t('उपयोगी टूल्स', 'Useful Tools')}
-          </Text>
-        </View>
+        {/* 5. Useful Tools Header */}
+        <Text style={{ fontSize: 15, fontWeight: 'bold', color: textColor, paddingHorizontal: 20, marginBottom: 14 }}>
+          {t('उपयोगी टूल्स', 'Useful Tools')}
+        </Text>
 
-        {/* 6. New Features Row */}
-        <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 20 }}>
-          {[
-            { icon: '🏠', title: language === 'hi' ? 'किराया\nसमझौता' : 'Rent\nAgreement' },
-            { icon: '💰', title: language === 'hi' ? 'वेतन\nकैलकुलेटर' : 'Salary\nCalculator' },
-            { icon: '🛡️', title: language === 'hi' ? 'सरकारी\nयोजनाएं' : 'Govt\nSchemes' },
-          ].map((feature, index) => (
+        {/* 6. Tools Row 1 — ✅ FIX: proper titles, working routes, ek baar hi dikh raha */}
+        <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 8 }}>
+          {toolsRow1.map((tool, index) => (
             <TouchableOpacity
               key={index}
-              style={{
-                backgroundColor: cardBg,
-                borderRadius: 12,
-                padding: 10,
-                alignItems: 'center',
-                borderWidth: 0.5,
-                borderColor: isDark ? '#2A3F55' : '#E0E0E0',
-                flex: 1,
-                position: 'relative',
-              }}
-              onPress={() => router.push(index === 0 ? '/rent-agreement' : index === 1 ? '/salary-calculator' : index === 2 ? '/govt-schemes' : index === 3 ? '/property-guide' : index === 4 ? '/rti-writer' : '/challan-checker')}
+              style={{ backgroundColor: cardBg, borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 0.5, borderColor: isDark ? '#2A3F55' : '#E0E0E0', flex: 1 }}
+              onPress={() => router.push(tool.route as any)}
             >
-
-              <Text style={{ fontSize: 20, marginBottom: 4 }}>{feature.icon}</Text>
+              <Text style={{ fontSize: 20, marginBottom: 4 }}>{tool.icon}</Text>
               <Text style={{ fontSize: 11, color: textColor, textAlign: 'center', fontWeight: '500' }}>
-                {t('किराया\nसमझौता', 'Rent\nAgreement')}
-                {t('सरकारी\nयोजनाएं', 'Govt\nSchemes')}
+                {tool.title}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
+        {/* Tools Row 2 */}
         <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 20 }}>
-          {[
-            { icon: '🏘️', title: t('संपत्ति गाइड', 'Property Guide'), route: '/property-guide' },
-            { icon: '📝', title: t('RTI आवेदन', 'RTI Application'), route: '/rti-writer' },
-            { icon: '🚦', title: t('e-Challan चेकर', 'e-Challan'), route: '/challan-checker' },
-          ].map((feature, index) => (
+          {toolsRow2.map((tool, index) => (
             <TouchableOpacity
               key={index}
-              style={{
-                backgroundColor: cardBg,
-                borderRadius: 12,
-                padding: 10,
-                alignItems: 'center',
-                borderWidth: 0.5,
-                borderColor: isDark ? '#2A3F55' : '#E0E0E0',
-                flex: 1,
-                position: 'relative',
-              }}
-              onPress={() => router.push(feature.route as any)}
+              style={{ backgroundColor: cardBg, borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 0.5, borderColor: isDark ? '#2A3F55' : '#E0E0E0', flex: 1 }}
+              onPress={() => router.push(tool.route as any)}
             >
-              <Text style={{ fontSize: 20, marginBottom: 4 }}>{feature.icon}</Text>
+              <Text style={{ fontSize: 20, marginBottom: 4 }}>{tool.icon}</Text>
               <Text style={{ fontSize: 11, color: textColor, textAlign: 'center', fontWeight: '500' }}>
-                {t('वेतन\nकैलकुलेटर', 'Salary\nCalculator')}
+                {tool.title}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* 7. Section Header */}
+        {/* 7. Emergency Helplines */}
         <Text style={{ fontSize: 15, fontWeight: 'bold', color: textColor, paddingHorizontal: 20, marginBottom: 14 }}>
           {t('आपातकालीन हेल्पलाइन', 'Emergency Helplines')}
         </Text>
 
-        {/* 8. Helplines Horizontal Scroll */}
         <ScrollView
           horizontal={true}
           showsHorizontalScrollIndicator={false}
@@ -441,15 +375,7 @@ export default function HomeScreen() {
           {helplines.map((item, index) => (
             <TouchableOpacity
               key={index}
-              style={{
-                backgroundColor: cardBg,
-                borderWidth: 0.5,
-                borderColor: isDark ? '#2A3F55' : '#E0E0E0',
-                borderRadius: 8,
-                padding: 6,
-                paddingHorizontal: 10,
-                alignItems: 'center',
-              }}
+              style={{ backgroundColor: cardBg, borderWidth: 0.5, borderColor: isDark ? '#2A3F55' : '#E0E0E0', borderRadius: 8, padding: 6, paddingHorizontal: 10, alignItems: 'center' }}
               onPress={() => Linking.openURL('tel:' + item.num)}
             >
               <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#CC0000' }}>{item.num}</Text>
@@ -458,8 +384,31 @@ export default function HomeScreen() {
           ))}
         </ScrollView>
 
-        {/* 10. Bottom Padding */}
-        <View style={{ height: 80 }} />
+            {/* Footer */}
+        <View style={{ paddingVertical: 14, paddingHorizontal: 16, borderTopWidth: 0.5, borderTopColor: isDark ? '#2A3F55' : '#E0E0E0' }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <TouchableOpacity onPress={() => router.push('/settings?section=privacy')} style={{ alignItems: 'center', minWidth: 80 }}>
+              <Text style={{ fontSize: 20 }}>🔒</Text>
+              <Text style={{ color: subText, fontSize: 10, marginTop: 2, textAlign: 'center' }}>{t('प्राइवेसी पॉलिसी', 'Privacy Policy')}</Text>
+            </TouchableOpacity>
+            <Text style={{ color: subText, fontSize: 11, textAlign: 'center' }}>{'© 2026\nNyayMitra'}</Text>
+            <TouchableOpacity onPress={() => router.push('/settings?section=terms')} style={{ alignItems: 'center', minWidth: 80 }}>
+              <Text style={{ fontSize: 20 }}>📄</Text>
+              <Text style={{ color: subText, fontSize: 10, marginTop: 2, textAlign: 'center' }}>{t('नियम व शर्तें', 'Terms & Conditions')}</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity
+            onPress={() => Linking.openURL('https://wa.me/918573821917?text=' + encodeURIComponent(t('नमस्ते! मुझे NyayMitra से सहायता चाहिए।', 'Hello! I need support from NyayMitra.')))}
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#25D366', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 20, gap: 8 }}
+          >
+            <Text style={{ fontSize: 22 }}>💬</Text>
+            <View>
+              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>{t('WhatsApp सपोर्ट', 'WhatsApp Support')}</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 10 }}>{t('तुरंत सहायता • सोम-शनि 10am-6pm', 'Instant Help • Mon-Sat 10am-6pm')}</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+        <View style={{ height: 20 }} />
       </ScrollView>
       <AdBanner />
       <SideDrawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
@@ -527,4 +476,4 @@ const styles = StyleSheet.create({
   quickSolScroll: { paddingHorizontal: 20, gap: 12 },
   disclaimer: { flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 20, alignItems: 'center', gap: 8, opacity: 0.7 },
   disclaimerText: { fontSize: 12, fontStyle: 'italic' },
-})
+});

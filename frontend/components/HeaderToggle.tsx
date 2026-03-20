@@ -11,11 +11,11 @@ export default function HeaderToggle() {
         <Text style={{ fontSize: 18 }}>{isDark ? '☀️' : '🌙'}</Text>
       </TouchableOpacity>
       <TouchableOpacity
-        onPress={() => changeLanguage(language === 'hindi' ? 'en' : 'hi')}
+        onPress={() => changeLanguage(language === 'hi' ? 'en' : 'hi')}
         style={{ backgroundColor: '#FF6B00', borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 }}
       >
         <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>
-          {language === 'hindi' ? 'EN' : 'हि'}
+          {language === 'hi' ? 'EN' : 'हि'}
         </Text>
       </TouchableOpacity>
     </View>

@@ -54,7 +54,10 @@ export default function RTIWriterScreen() {
     });
 
     if (language === 'hi') {
-      const rti = `सेवा में,
+      const rti = `--- AI GENERATED DOCUMENT | NyayMitra ---
+--- यह दस्तावेज़ AI द्वारा तैयार किया गया है ---
+
+सेवा में,
 जन सूचना अधिकारी (PIO),
 ${form.department},
 ${form.state || 'उत्तर प्रदेश'}
@@ -105,7 +108,10 @@ ${form.period ? `सूचना की समय अवधि: ${form.period}` 
 ─────────────────────────────────`;
       setGeneratedRTI(rti);
     } else {
-      const rti = `To,
+      const rti = `--- AI GENERATED DOCUMENT | NyayMitra ---
+--- This document is AI generated ---
+
+To,
 The Public Information Officer (PIO),
 ${form.department},
 ${form.state || 'Uttar Pradesh'}

@@ -172,7 +172,7 @@ export default function EmergencyScreen() {
         flexDirection: 'row',
         alignItems: 'center',
       }}>
-        <TouchableOpacity onPress={() => router.back()} 
+        <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)")} 
           style={{ marginRight: 12 }}>
           <Text style={{ color: '#fff', fontSize: 24 }}>←</Text>
         </TouchableOpacity>

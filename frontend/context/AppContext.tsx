@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-type Language = 'hindi' | 'english';
+type Language = 'en' | 'hi';
 type Plan = 'free' | 'silver' | 'gold' | 'pro';
 type Theme = 'light' | 'dark';
 
@@ -38,7 +38,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>('hindi');
+  const [language, setLanguage] = useState<Language>('hi');
   const [theme, setTheme] = useState<Theme>('light');
   const [isPremium, setIsPremium] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -58,23 +58,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const loadLanguage = async () => {
     try {
       const saved = await AsyncStorage.getItem('app_language');
-      if (saved === 'hindi' || saved === 'english') setLanguage(saved);
-      if (saved === 'hi') setLanguage('hindi');
-      if (saved === 'en') setLanguage('english');
+      if (saved === 'hi' || saved === 'en') setLanguage(saved);
     } catch (error) {
       
     }
   };
 
-  const changeLanguage = async (lang: Language | 'hi' | 'en') => {
-    const normalized: Language =
-      lang === 'hi' ? 'hindi' :
-      lang === 'en' ? 'english' :
-      lang;
-
-    setLanguage(normalized);
+  const changeLanguage = async (lang: Language) => {
+    setLanguage(lang);
     try {
-      await AsyncStorage.setItem('app_language', normalized);
+      await AsyncStorage.setItem('app_language', lang);
     } catch (error) {
       
     }

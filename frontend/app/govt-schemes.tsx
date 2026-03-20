@@ -55,10 +55,10 @@ export default function GovtSchemesScreen() {
         <HeaderToggle />
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 50, paddingVertical: 8, paddingHorizontal: 8 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingHorizontal: 8 }} contentContainerStyle={{ alignItems: 'center', paddingVertical: 8 }}>
         {categories.map(cat => (
-          <TouchableOpacity key={cat} onPress={() => setActiveCategory(cat)} style={{ backgroundColor: activeCategory === cat ? '#FF6B00' : cardBg, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, marginRight: 8, borderWidth: 1, borderColor: activeCategory === cat ? '#FF6B00' : (isDark ? '#2A3F55' : '#E0E0E0') }}>
-            <Text style={{ color: activeCategory === cat ? '#fff' : subText, fontSize: 12, fontWeight: activeCategory === cat ? 'bold' : 'normal' }}>{cat}</Text>
+          <TouchableOpacity key={cat} onPress={() => setActiveCategory(cat)} style={{ backgroundColor: activeCategory === cat ? '#FF6B00' : (isDark ? '#2A3F55' : '#F0F0F0'), paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, marginRight: 8, borderWidth: 1, borderColor: activeCategory === cat ? '#FF6B00' : (isDark ? '#2A3F55' : '#E0E0E0') }}>
+            <Text style={{ color: activeCategory === cat ? '#fff' : subText, fontSize: 12, fontWeight: activeCategory === cat ? 'bold' : 'normal', textDecorationLine: 'none' }}>{cat}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>

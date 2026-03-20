@@ -19,6 +19,9 @@ import * as Speech from 'expo-speech';
 import { LightColors, DarkColors } from '../../constants/colors';
 import { chatAPI, sanitizeInput } from '../../services/api';
 import { useAppContext } from '../../context/AppContext';
+import { t } from '../../constants/translations';
+import LegalDisclaimer from '../../components/LegalDisclaimer';
+import LanguageToggle from '../../components/LanguageToggle';
 
 interface Message {
   id: string;
@@ -39,7 +42,7 @@ const MessageBubble = React.memo(({ item, isUser, Colors, theme, onSpeak }: any)
             <TouchableOpacity style={styles.speakButton} onPress={() => onSpeak(item.content)}><Ionicons name="volume-medium-outline" size={16} color={Colors.textSecondary} /></TouchableOpacity>
           )}
         </View>
-        {!isUser && !isSystemError && item.id !== 'welcome' && <Text style={[styles.disclaimerText, { color: Colors.textSecondary }]}>⚠️ AI मार्गदर्शन | कानूनी सलाह नहीं</Text>}
+        {!isUser && !isSystemError && item.id !== 'welcome' && <LegalDisclaimer position="after" />}
       </View>
     </View>
   );
@@ -47,49 +50,31 @@ const MessageBubble = React.memo(({ item, isUser, Colors, theme, onSpeak }: any)
 MessageBubble.displayName = 'MessageBubble';
 
 export default function ChatScreen() {
-  const { theme } = useAppContext();
+  const { theme, language, changeLanguage } = useAppContext();
   const Colors = theme === 'dark' ? DarkColors : LightColors;
-  const { language } = useAppContext();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [lastRequestTime, setLastRequestTime] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
-  const getText = useCallback((hi: string, en: string) => language === 'hi' ? hi : en, [language]);
-
   useEffect(() => {
     const welcome = {
       id: 'welcome', role: 'assistant', timestamp: new Date().toISOString(),
-      content: getText('नमस्ते! मैं NyayMitra हूं। 🙏', 'Hello! I am NyayMitra. 🙏')
+      content: t('welcome_message', language)
     };
     setMessages([welcome as Message]);
-  }, [language, getText]);
+  }, [language, t]);
 
-  const sendMessage = useCallback(async (text?: string) => {
-    const rawContent = text || inputText.trim();
-    if (!rawContent || isLoading) return;
-
-    const now = Date.now();
-    if (now - lastRequestTime < 2000) {
-      Alert.alert(
-        getText('कृपया रुकें', 'Please wait'),
-        getText('आप बहुत जल्दी संदेश भेज रहे हैं। कृपया 2 सेकंड रुकें।', 'You are sending messages too quickly. Please wait 2 seconds.')
-      );
-      return;
-    }
-
-    const content = sanitizeInput(rawContent);
-    if (!content) return;
-
-    const userMsg: Message = { id: `u_${Date.now()}`, role: 'user', content, timestamp: new Date().toISOString() };
-    setMessages(prev => [...prev, userMsg]);
-    if (!text) setInputText('');
+  const sendMessage = useCallback(async () => {
+    if (!inputText.trim() || isLoading) return;
+    const timeSinceLastRequest = Date.now() - lastRequestTime;
+    if (timeSinceLastRequest < 2000) return;
     setIsLoading(true);
-    setLastRequestTime(now);
+    setLastRequestTime(Date.now());
     Keyboard.dismiss();
     try {
-      const res = await chatAPI.sendMessage('local', content, language);
+      const res = await chatAPI.sendMessage('local', inputText, language);
       const assistantMsg: Message = { id: res.message_id || `a_${Date.now()}`, role: 'assistant', content: res.response, timestamp: new Date().toISOString() };
       setMessages(prev => [...prev, assistantMsg]);
       const stats = await AsyncStorage.getItem('stats_ai_count');
@@ -99,17 +84,19 @@ export default function ChatScreen() {
       setMessages(prev => [...prev, {
         id: `e_${Date.now()}`,
         role: 'assistant',
-        content: getText('क्षमा करें, सर्वर से संपर्क नहीं हो पाया। कृपया इंटरनेट चेक करें।', 'Sorry, could not connect to server. Please check internet.'),
+        content: t('check_internet', language),
         timestamp: new Date().toISOString()
       }]);
     } finally { setIsLoading(false); }
-  }, [inputText, isLoading, language, lastRequestTime, getText]);
+  }, [inputText, isLoading, language, lastRequestTime]);
 
   const speakMessage = useCallback((text: string) => Speech.speak(text, { language: language === 'hi' ? 'hi-IN' : 'en-IN', rate: 0.9 }), [language]);
 
-  const clearChat = () => Alert.alert(getText('साफ करें?', 'Clear?'), getText('हटाएं?', 'Delete?'), [
-    { text: getText('नहीं', 'No'), style: 'cancel' },
-    { text: getText('हां', 'Yes'), style: 'destructive', onPress: () => setMessages([]) }
+  const clearChat = () => Alert.alert(
+    t('clear_question', language), 
+    t('delete_question', language), [
+    { text: t('no', language), style: 'cancel' },
+    { text: t('yes', language), style: 'destructive', onPress: () => setMessages([]) }
   ]);
 
 
@@ -124,7 +111,8 @@ export default function ChatScreen() {
         <View style={[styles.header, { backgroundColor: Colors.white, borderBottomColor: Colors.border }]}>
           <View style={styles.headerLeft}>
             <View style={[styles.headerIcon, { backgroundColor: Colors.saffron }]}><Ionicons name="chatbubbles" size={24} color="#fff" /></View>
-            <View><Text style={[styles.headerTitle, { color: Colors.textPrimary }]}>{getText('AI वकील', 'AI Lawyer')}</Text><Text style={[styles.headerSubtitle, { color: Colors.green }]}>{getText('ऑनलाइन', 'Online')}</Text></View>
+            <View><Text style={[styles.headerTitle, { color: Colors.textPrimary }]}>{t('chat', language)}</Text><Text style={[styles.headerSubtitle, { color: Colors.green }]}>{t('online', language)}</Text></View>
+            <LanguageToggle />
           </View>
           <TouchableOpacity onPress={clearChat} style={styles.clearButton}><Ionicons name="trash-outline" size={20} color={Colors.textSecondary} /></TouchableOpacity>
         </View>
@@ -136,9 +124,9 @@ export default function ChatScreen() {
           inverted={false}
           removeClippedSubviews={Platform.OS === 'android'}
         />
-        {isLoading && <View style={styles.loadingContainer}><View style={[styles.loadingBubble, { backgroundColor: theme === 'dark' ? '#1E293B' : '#fff' }]}><Text style={{ color: Colors.textSecondary }}>Thinking...</Text></View></View>}
+        {isLoading && <View style={styles.loadingContainer}><View style={[styles.loadingBubble, { backgroundColor: theme === 'dark' ? '#1E293B' : '#fff' }]}><Text style={{ color: Colors.textSecondary }}>{t('thinking', language)}</Text></View></View>}
         <View style={[styles.inputContainer, { backgroundColor: theme === 'dark' ? '#0D1B2A' : '#fff', borderTopColor: Colors.border }]}>
-          <TextInput style={[styles.input, { backgroundColor: theme === 'dark' ? '#1E293B' : Colors.background, color: Colors.textPrimary }]} placeholder={getText('लिखें...', 'Type...')} placeholderTextColor={Colors.textLight} value={inputText} onChangeText={setInputText} multiline />
+          <TextInput style={[styles.input, { backgroundColor: theme === 'dark' ? '#1E293B' : Colors.background, color: Colors.textPrimary }]} placeholder={t('type_message', language)} placeholderTextColor={Colors.textLight} value={inputText} onChangeText={setInputText} multiline />
           <Pressable style={({ pressed }) => [styles.sendButton, { backgroundColor: Colors.saffron }, (!inputText.trim() || isLoading) && styles.disabledBtn, pressed && { opacity: 0.7 }]} onPress={() => sendMessage()} disabled={!inputText.trim() || isLoading}>
             <Ionicons name="send" size={20} color="#fff" />
           </Pressable>
