@@ -9,6 +9,7 @@ import {
   Platform,
   Pressable,
 } from 'react-native';
+import RazorpayCheckout from 'react-native-razorpay';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -25,10 +26,43 @@ export default function PremiumScreen() {
   const getText = (hindi: string, english: string) => language === 'hi' ? hindi : english;
 
   const handlePlanSelect = useCallback((plan: string, price: number) => {
-    Alert.alert(`${plan} Plan`, getText(`${plan} Plan (₹${price}/mo) के लिए भुगतान अभी प्रक्रिया में है।`, `Payment for ${plan} Plan (₹${price}/mo) is being processed.`), [
-      { text: getText('कैंसल', 'Cancel'), style: 'cancel' },
-      { text: getText('भुगतान करें', 'Pay'), onPress: () => Alert.alert(getText('सफलता', 'Success'), getText('आपका प्रीमियम सक्रिय हो गया है!', 'Your premium is active!')) }
-    ]);
+    if (price === 0) return;
+
+    const options = {
+      description: `NyayMitra ${plan} Plan`,
+      image: 'https://nyaymitra.app/logo.png',
+      currency: 'INR',
+      key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || '',
+      amount: price * 100, // paise mein
+      name: 'NyayMitra',
+      prefill: {
+        email: 'user@example.com',
+        contact: '9999999999',
+        name: 'NyayMitra User',
+      },
+      theme: { color: '#FF6B00' },
+    };
+
+    RazorpayCheckout.open(options)
+      .then((data: any) => {
+        // Payment successful
+        Alert.alert(
+          getText('भुगतान सफल! 🎉', 'Payment Successful! 🎉'),
+          getText(
+            `${plan} Plan activate हो गया है। Payment ID: ${data.razorpay_payment_id}`,
+            `${plan} Plan activated. Payment ID: ${data.razorpay_payment_id}`
+          )
+        );
+        // TODO: Supabase mein plan update karo
+      })
+      .catch((error: any) => {
+        if (error.code !== 'PAYMENT_CANCELLED') {
+          Alert.alert(
+            getText('भुगतान विफल', 'Payment Failed'),
+            getText('कृपया पुनः प्रयास करें।', 'Please try again.')
+          );
+        }
+      });
   }, [language]);
 
   const plans = [
