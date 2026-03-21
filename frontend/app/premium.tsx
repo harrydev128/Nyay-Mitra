@@ -10,6 +10,7 @@ import {
   Pressable,
 } from 'react-native';
 import RazorpayCheckout from 'react-native-razorpay';
+import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -32,7 +33,7 @@ export default function PremiumScreen() {
       description: `NyayMitra ${plan} Plan`,
       image: 'https://nyaymitra.app/logo.png',
       currency: 'INR',
-      key: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || '',
+      key: Constants.expoConfig?.extra?.razorpayKey || process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || '',
       amount: price * 100, // paise mein
       name: 'NyayMitra',
       prefill: {

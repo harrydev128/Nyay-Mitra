@@ -37,6 +37,9 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "razorpayKey": "rzp_test_STYi2VYftMEhYr"
     }
   }
 }

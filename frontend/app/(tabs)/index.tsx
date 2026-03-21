@@ -1,391 +1,266 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Linking,
-  Animated,
-  Pressable,
-  Alert,
-  Platform,
+  View, Text, ScrollView, TouchableOpacity, Linking,
+  StatusBar, Platform, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LightColors, DarkColors } from '../../constants/colors';
 import { useAppContext } from '../../context/AppContext';
-import AdBanner from '../../components/AdBanner';
+import HeaderToggle from '../../components/HeaderToggle';
 import SideDrawer from '../../components/SideDrawer';
-import LanguageToggle from '../../components/LanguageToggle';
+import AdBanner from '../../components/AdBanner';
 
-const NOTIFICATION_STORAGE_KEY = 'notifications';
-
-const defaultNotifications = [
-  { id: '1', title: '⚖️ नया कानूनी अपडेट', body: 'BNS 2024 लागू - जानें क्या बदला', time: '2 घंटे पहले', read: false, route: '/(tabs)/rights' },
-  { id: '2', title: '📄 दस्तावेज़ तैयार है', body: 'आपका दस्तावेज़ देखने के लिए तैयार है', time: '1 दिन पहले', read: false, route: '/(tabs)/documents' },
-  { id: '3', title: '🎁 Referral bonus मिला!', body: '7 दिन Silver FREE मिला आपके referral से', time: '3 दिन पहले', read: false, route: '/referral' },
-];
+const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
-  const { theme, toggleTheme, notificationPanel, setNotificationPanel, toggleNotificationPanel, language, setLanguage, user } = useAppContext();
-  const t = (hi: string, en: string) => language === 'hi' ? hi : en;
-  const Colors = theme === 'dark' ? DarkColors : LightColors;
+  const { theme, language, user } = useAppContext();
   const router = useRouter();
   const isDark = theme === 'dark';
-  const username = user?.name || user?.email?.split('@')[0] || 'User';
-  const pageBg = isDark ? '#0D1B2A' : '#F5F5F5';
-  const cardBg = isDark ? '#1B2B3B' : '#FFFFFF';
-  const textColor = isDark ? '#FFFFFF' : '#1a237e';
-  const subText = isDark ? '#AABBCC' : '#666666';
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
 
-  const slideAnim = useRef(new Animated.Value(-400)).current;
+  const t = (hi: string, en: string) => language === 'hi' ? hi : en;
 
-  const getText = useCallback((hindi: string, english: string) => language === 'hi' ? hindi : english, [language]);
+  // Colors - HTML design jaisa
+  const bg = isDark ? '#141B3C' : '#F0F2FF';
+  const cardBg = isDark ? '#1C2340' : '#FFFFFF';
+  const card2 = isDark ? '#222A4A' : '#F5F7FF';
+  const textColor = isDark ? '#F0F2FF' : '#141B3C';
+  const subText = isDark ? '#8A95C0' : '#666666';
+  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : '#E8EAFF';
+  const orange = '#E8610A';
+  const orange2 = '#FF7A25';
 
-  const loadNotifications = async () => {
-    try {
-      const saved = await AsyncStorage.getItem(NOTIFICATION_STORAGE_KEY);
-      if (saved) {
-        setNotifications(JSON.parse(saved));
-      } else {
-        setNotifications(defaultNotifications);
-      }
-    } catch (e) {
-      if (__DEV__) console.error('Error loading notifications:', e);
-      setNotifications(defaultNotifications);
-    }
-  };
-
-  useEffect(() => {
-    loadNotifications();
-  }, []);
-
-  const deleteNotification = async (id: string) => {
-    try {
-      const updated = notifications.filter(n => n.id !== id);
-      setNotifications(updated);
-      await AsyncStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updated));
-    } catch (e) {
-      if (__DEV__) console.error('Error deleting notification:', e);
-    }
-  };
-
-  const markAllRead = async () => {
-    try {
-      const updated = notifications.map(n => ({ ...n, read: true }));
-      setNotifications(updated);
-      await AsyncStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updated));
-    } catch (e) {
-      if (__DEV__) console.error('Error marking all read:', e);
-    }
-  };
-
-  const handleNotificationPress = async (notification: any) => {
-    try {
-      setNotificationPanel(false);
-      const updated = notifications.map(n => n.id === notification.id ? { ...n, read: true } : n);
-      setNotifications(updated);
-      await AsyncStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(updated));
-      router.push(notification.route as any);
-    } catch (e) {
-      if (__DEV__) console.error('Error handling notification press:', e);
-      router.push(notification.route as any);
-    }
-  };
-
-  const notificationCount = notifications.filter(n => !n.read).length;
-
-  // ✅ FIX: Proper titles aur working routes
-  const toolsRow1 = [
-    { icon: '🏠', title: t('किराया\nसमझौता', 'Rent\nAgreement'), route: '/rent-agreement' },
-    { icon: '💰', title: t('वेतन\nकैलकुलेटर', 'Salary\nCalculator'), route: '/salary-calculator' },
-    { icon: '🛡️', title: t('सरकारी\nयोजनाएं', 'Govt\nSchemes'), route: '/govt-schemes' },
+  const mainServices = [
+    { icon: '⚖️', name: t('AI वकील', 'AI Lawyer'), desc: t('कानूनी सवाल पूछें 24/7', 'Ask legal questions 24/7'), route: '/(tabs)/chat' },
+    { icon: '📋', name: t('अधिकार जानें', 'Know Rights'), desc: t('40+ कानूनी अधिकार', '40+ Legal Rights'), route: '/(tabs)/rights' },
+    { icon: '📝', name: t('दस्तावेज़ बनाएं', 'Make Document'), desc: t('FIR, Notice, Agreement', 'FIR, Notice, Agreement'), route: '/(tabs)/documents' },
+    { icon: '🏛️', name: t('कोर्ट तारीख', 'Court Date'), desc: t('केस ट्रैक करें', 'Track your case'), route: '/court-tracker', isNew: true },
   ];
 
-  const toolsRow2 = [
-    { icon: '🏘️', title: t('संपत्ति गाइड', 'Property Guide'), route: '/property-guide' },
-    { icon: '📝', title: t('RTI आवेदन', 'RTI Application'), route: '/rti-writer' },
-    { icon: '🚦', title: t('e-Challan', 'e-Challan'), route: '/challan-checker' },
+  const tools = [
+    { icon: '🏠', name: t('किराया समझौता', 'Rent Agreement'), route: '/rent-agreement' },
+    { icon: '💰', name: t('वेतन कैलकुलेटर', 'Salary Calc'), route: '/salary-calculator' },
+    { icon: '🏛️', name: t('सरकारी योजनाएं', 'Govt Schemes'), route: '/govt-schemes' },
+    { icon: '🚦', name: t('e-Challan', 'e-Challan'), route: '/challan-checker' },
+    { icon: '📢', name: t('RTI आवेदन', 'RTI Application'), route: '/rti-writer' },
+    { icon: '🏡', name: t('Property Guide', 'Property Guide'), route: '/property-guide' },
+  ];
+
+  const schemes = [
+    { icon: '🌾', color: 'rgba(34,197,94,0.15)', name: 'PM Kisan Samman Nidhi', target: t('छोटे किसान', 'Small Farmers'), benefit: t('₹6000/साल सीधे खाते में', '₹6000/year direct transfer') },
+    { icon: '🏥', color: 'rgba(239,68,68,0.15)', name: 'Ayushman Bharat', target: t('गरीब परिवार', 'Poor Families'), benefit: t('₹5 लाख मुफ्त इलाज/साल', '₹5 lakh free treatment/year') },
+    { icon: '🔥', color: 'rgba(251,146,60,0.15)', name: 'PM Ujjwala Yojana', target: t('BPL महिलाएं', 'BPL Women'), benefit: t('मुफ्त LPG कनेक्शन', 'Free LPG Connection') },
+    { icon: '👧', color: 'rgba(139,92,246,0.15)', name: 'Sukanya Samriddhi', target: t('10 साल से कम बेटी', 'Girl below 10 yrs'), benefit: t('8.2% ब्याज दर', '8.2% interest rate') },
   ];
 
   const helplines = [
-    { num: '112', label: language === 'hi' ? 'पुलिस' : 'Police' },
-    { num: '181', label: language === 'hi' ? 'महिला हेल्पलाइन' : 'Women Helpline' },
-    { num: '108', label: language === 'hi' ? 'एम्बुलेंस' : 'Ambulance' },
-    { num: '1930', label: language === 'hi' ? 'साइबर क्राइम' : 'Cyber Crime' },
-    { num: '15100', label: language === 'hi' ? 'कानूनी सहायता' : 'Legal Aid' },
-    { num: '1098', label: language === 'hi' ? 'बाल सहायता' : 'Child Help' },
+    { num: '112', label: t('पुलिस', 'Police') },
+    { num: '181', label: t('महिला हेल्पलाइन', 'Women Helpline') },
+    { num: '108', label: t('एम्बुलेंस', 'Ambulance') },
+    { num: '1930', label: t('साइबर क्राइम', 'Cyber Crime') },
+    { num: '15100', label: t('कानूनी सहायता', 'Legal Aid') },
+    { num: '1098', label: t('बाल सहायता', 'Child Help') },
   ];
 
-  useEffect(() => {
-    Animated.timing(slideAnim, {
-      toValue: notificationPanel ? 0 : -400,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  }, [notificationPanel, slideAnim]);
-
-  const callNumber = useCallback((number: string) => {
-    try {
-      Linking.openURL(`tel:${number}`);
-    } catch (e) {
-      if (__DEV__) console.error('Error calling number:', e);
-    }
-  }, []);
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]} edges={['top']}>
-      {notificationPanel && (
-        <Pressable style={styles.overlay} onPress={() => setNotificationPanel(false)} />
-      )}
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={bg} />
 
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: Colors.cardBackground, borderBottomColor: Colors.border, zIndex: 1001 }]}>
-        <TouchableOpacity style={styles.hamburgerBtn} onPress={() => setDrawerVisible(true)}>
-          <Ionicons name="menu" size={28} color={Colors.deepBlue} />
+      {/* TOP BAR */}
+      <View style={{
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        paddingHorizontal: 18, paddingVertical: 12,
+        backgroundColor: bg, borderBottomWidth: 1, borderBottomColor: borderColor,
+      }}>
+        <TouchableOpacity onPress={() => setDrawerVisible(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+          <Text style={{ fontSize: 20 }}>⚖️</Text>
+          <Text style={{ fontWeight: '800', fontSize: 22, color: textColor }}>
+            Nyay<Text style={{ color: orange }}>Mitra</Text>
+          </Text>
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={[styles.appName, { color: Colors.deepBlue }]}>NyayMitra ⚖️</Text>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={{ marginRight: 16 }} onPress={toggleTheme}>
-            <Text style={{ fontSize: 22 }}>{theme === 'dark' ? '🌙' : '☀️'}</Text>
-          </TouchableOpacity>
-          <LanguageToggle />
-          <TouchableOpacity style={styles.bellBtn} onPress={toggleNotificationPanel}>
-            <Ionicons name="notifications-outline" size={24} color={Colors.deepBlue} />
-            {notificationCount > 0 && (
-              <View style={[styles.notifBadge, { backgroundColor: Colors.red }]}>
-                <Text style={styles.notifCount}>{notificationCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
+        <HeaderToggle />
       </View>
 
-      {/* Notification Panel */}
-      <Animated.View style={[styles.notifPanel, { backgroundColor: Colors.cardBackground, transform: [{ translateY: slideAnim }] }]}>
-        <View style={[styles.notifHeader, { borderBottomColor: Colors.border }]}>
-          <Text style={[styles.notifTitle, { color: Colors.textPrimary }]}>{t('सूचनाएं', 'Notifications')}</Text>
-          <TouchableOpacity onPress={markAllRead}>
-            <Text style={[styles.markReadText, { color: Colors.lightBlue }]}>{t('सभी पढ़ें', 'Mark all read')}</Text>
-          </TouchableOpacity>
-        </View>
-        <ScrollView style={{ maxHeight: 300 }}>
-          {notifications.map((notification) => (
-            <NotificationItem
-              key={notification.id}
-              notification={notification}
-              Colors={Colors}
-              onPress={() => handleNotificationPress(notification)}
-              onDelete={() => deleteNotification(notification.id)}
-            />
-          ))}
-          {notifications.length === 0 && (
-            <View style={{ padding: 20, alignItems: 'center' }}>
-              <Text style={{ color: Colors.textSecondary }}>{t('कोई सूचना नहीं', 'No notifications')}</Text>
-            </View>
-          )}
-        </ScrollView>
-      </Animated.View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
 
-      <ScrollView style={{ flex: 1, backgroundColor: pageBg }} showsVerticalScrollIndicator={false}>
-        {/* 1. Welcome Card */}
+        {/* HERO BANNER */}
         <View style={{
-          flexDirection: 'row',
-          backgroundColor: '#1a237e',
-          margin: 16,
-          borderRadius: 20,
-          padding: 20,
-          alignItems: 'center',
-          elevation: 4,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.2,
-          shadowRadius: 8,
+          margin: 14, borderRadius: 18, padding: 22, overflow: 'hidden',
+          backgroundColor: orange,
+        }}>
+          <View style={{
+            backgroundColor: 'rgba(255,255,255,0.18)', alignSelf: 'flex-start',
+            paddingHorizontal: 10, paddingVertical: 3, borderRadius: 50, marginBottom: 10,
+          }}>
+            <Text style={{ color: 'white', fontSize: 11, fontWeight: '700' }}>🇮🇳 {t('भारत का AI Legal Assistant', "India's AI Legal Assistant")}</Text>
+          </View>
+          <Text style={{ color: 'white', fontSize: 22, fontWeight: '800', lineHeight: 28, marginBottom: 6 }}>
+            {t('आपका AI वकील\n₹49 में — Hindi में', 'Your AI Lawyer\nStarting ₹49')}
+          </Text>
+          <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, marginBottom: 16, lineHeight: 20 }}>
+            {t('अपने अधिकार जानें, दस्तावेज़ बनाएं — सरल भाषा में।', 'Know your rights, make documents — in simple language.')}
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push('/(tabs)/chat')}
+            style={{ backgroundColor: 'white', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, alignSelf: 'flex-start' }}
+          >
+            <Text style={{ color: orange, fontWeight: '700', fontSize: 14 }}>📲 {t('AI वकील से पूछें', 'Ask AI Lawyer')}</Text>
+          </TouchableOpacity>
+          <Text style={{ position: 'absolute', right: 14, bottom: -8, fontSize: 72, opacity: 0.18 }}>⚖️</Text>
+        </View>
+
+        {/* STATS ROW */}
+        <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 14, marginBottom: 6 }}>
+          {[
+            { val: '40+', lbl: t('Legal Rights', 'Legal Rights') },
+            { val: '10+', lbl: t('Tools', 'Tools') },
+            { val: '₹49', lbl: t('से Premium', 'Premium') },
+            { val: '24/7', lbl: t('AI Help', 'AI Help') },
+          ].map((s, i) => (
+            <View key={i} style={{ flex: 1, backgroundColor: cardBg, borderRadius: 14, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: borderColor }}>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: orange }}>{s.val}</Text>
+              <Text style={{ fontSize: 10, color: subText, marginTop: 2, textAlign: 'center' }}>{s.lbl}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* MAIN SERVICES */}
+        <View style={{ paddingHorizontal: 16, paddingTop: 20, paddingBottom: 10 }}>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: textColor }}>{t('मुख्य सेवाएं', 'Main Services')}</Text>
+        </View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 14 }}>
+          {mainServices.map((s, i) => (
+            <TouchableOpacity
+              key={i}
+              onPress={() => router.push(s.route as any)}
+              style={{
+                width: (width - 38) / 2,
+                backgroundColor: cardBg, borderRadius: 16, padding: 18,
+                borderWidth: 1, borderColor: isDark ? 'rgba(232,97,10,0.3)' : borderColor,
+                position: 'relative', overflow: 'hidden',
+              }}
+            >
+              {s.isNew && (
+                <View style={{ position: 'absolute', top: 10, right: 10, backgroundColor: orange, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 50 }}>
+                  <Text style={{ color: 'white', fontSize: 9, fontWeight: '800' }}>NEW</Text>
+                </View>
+              )}
+              <Text style={{ fontSize: 30, marginBottom: 10 }}>{s.icon}</Text>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: textColor, marginBottom: 3 }}>{s.name}</Text>
+              <Text style={{ fontSize: 11.5, color: subText, lineHeight: 16 }}>{s.desc}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* USEFUL TOOLS */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 10 }}>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: textColor }}>{t('उपयोगी टूल्स', 'Useful Tools')}</Text>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 14, gap: 10 }}>
+          {tools.map((tool, i) => (
+            <TouchableOpacity
+              key={i}
+              onPress={() => router.push(tool.route as any)}
+              style={{ backgroundColor: cardBg, borderRadius: 14, padding: 14, alignItems: 'center', width: 90, borderWidth: 1, borderColor: borderColor }}
+            >
+              <Text style={{ fontSize: 26, marginBottom: 7 }}>{tool.icon}</Text>
+              <Text style={{ fontSize: 11, color: subText, fontWeight: '600', textAlign: 'center', lineHeight: 15 }}>{tool.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* GOVT SCHEMES */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 20, paddingBottom: 10 }}>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: textColor }}>{t('सरकारी योजनाएं', 'Govt Schemes')}</Text>
+          <TouchableOpacity onPress={() => router.push('/govt-schemes')}><Text style={{ fontSize: 12, color: orange, fontWeight: '600' }}>{t('सभी देखें →', 'See all →')}</Text></TouchableOpacity>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 14, gap: 10 }}>
+          {schemes.map((s, i) => (
+            <TouchableOpacity
+              key={i}
+              onPress={() => router.push('/govt-schemes')}
+              style={{ width: 200, backgroundColor: cardBg, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: borderColor }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: s.color, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 20 }}>{s.icon}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: textColor }}>{s.name}</Text>
+                  <Text style={{ fontSize: 11, color: subText }}>{s.target}</Text>
+                </View>
+              </View>
+              <View style={{ backgroundColor: 'rgba(34,197,94,0.1)', borderRadius: 8, padding: 8 }}>
+                <Text style={{ fontSize: 12, color: '#22C55E', fontWeight: '600' }}>{s.benefit}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* PREMIUM BANNER */}
+        <View style={{
+          margin: 14, borderRadius: 16, padding: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+          backgroundColor: isDark ? '#1E2850' : '#EEF0FF', borderWidth: 1, borderColor: isDark ? 'rgba(232,97,10,0.3)' : 'rgba(232,97,10,0.2)',
         }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 4 }}>
-              {language === 'hi' ? `नमस्ते, ${username}! 👋` : `Hello, ${username}! 👋`}
-            </Text>
-            <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginBottom: 14 }}>
-              {t('आज आपकी कैसे मदद करें?', 'How can we help today?')}
-            </Text>
-            <TouchableOpacity
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: '#FF6B00',
-                paddingHorizontal: 18,
-                paddingVertical: 10,
-                borderRadius: 20,
-                alignSelf: 'flex-start',
-                gap: 6,
-              }}
-              onPress={() => router.push('/(tabs)/chat')}
-            >
-              <Ionicons name="arrow-forward" size={18} color="#fff" />
-            </TouchableOpacity>
-          </View>
-          <Text style={{ fontSize: 48, marginLeft: 12 }}>⚖️</Text>
-        </View>
-
-        {/* 2. Emergency Banner */}
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#CC0000',
-            marginHorizontal: 16,
-            borderRadius: 12,
-            padding: 16,
-            flexDirection: 'row',
-            alignItems: 'center',
-            marginBottom: 8,
-          }}
-          onPress={() => router.push('/emergency')}
-        >
-          <Text style={{ fontSize: 32, marginRight: 12 }}>🆘</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#fff' }}>
-              {t('आपातकालीन मदद', 'Emergency Help')}
-            </Text>
-            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.9)' }}>
-              {t('पुलिस • बेदखली • धोखाधड़ी • मार-पीट', 'Police • Eviction • Fraud • Assault')}
-            </Text>
-          </View>
-          <Text style={{ fontSize: 24, color: '#fff', fontWeight: 'bold' }}>›</Text>
-        </TouchableOpacity>
-
-        {/* 3. Section Header */}
-        <Text style={{ fontSize: 15, fontWeight: 'bold', color: textColor, paddingHorizontal: 20, marginBottom: 14 }}>
-          {t('मुख्य सेवाएं', 'Core Services')}
-        </Text>
-
-        {/* 4. Main Features Grid */}
-        <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 20 }}>
-          <TouchableOpacity
-            style={{ backgroundColor: cardBg, borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 0.5, borderColor: isDark ? '#2A3F55' : '#E0E0E0', flex: 1 }}
-            onPress={() => router.push('/(tabs)/chat')}
-          >
-            <Text style={{ fontSize: 28, marginBottom: 6 }}>⚖️</Text>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: textColor, textAlign: 'center' }}>
-              {t('AI वकील', 'AI Lawyer')}
-            </Text>
-            <Text style={{ fontSize: 10, color: subText, textAlign: 'center', marginTop: 2 }}>
-              {t('कानूनी सवाल पूछें', 'Ask legal questions')}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={{ backgroundColor: cardBg, borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 0.5, borderColor: isDark ? '#2A3F55' : '#E0E0E0', flex: 1 }}
-            onPress={() => router.push('/(tabs)/rights')}
-          >
-            <Text style={{ fontSize: 28, marginBottom: 6 }}>📋</Text>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: textColor, textAlign: 'center' }}>
-              {t('अधिकार जानें', 'Know Rights')}
-            </Text>
-            <Text style={{ fontSize: 10, color: subText, textAlign: 'center', marginTop: 2 }}>
-              {t('40+ कानूनी अधिकार', '40+ legal rights')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginBottom: 20 }}>
-          <TouchableOpacity
-            style={{ backgroundColor: cardBg, borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 0.5, borderColor: isDark ? '#2A3F55' : '#E0E0E0', flex: 1 }}
-            onPress={() => router.push('/(tabs)/documents')}
-          >
-            <Text style={{ fontSize: 28, marginBottom: 6 }}>📄</Text>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: textColor, textAlign: 'center' }}>
-              {t('दस्तावेज़ बनाएं', 'Make Document')}
-            </Text>
-            <Text style={{ fontSize: 10, color: subText, textAlign: 'center', marginTop: 2 }}>
-              {t('FIR, नोटिस, शिकायत', 'FIR, Notice, Complaint')}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={{ backgroundColor: cardBg, borderRadius: 12, padding: 14, alignItems: 'center', borderWidth: 0.5, borderColor: isDark ? '#2A3F55' : '#E0E0E0', flex: 1, position: 'relative' }}
-            onPress={() => router.push('/court-tracker')}
-          >
-            <View style={{ position: 'absolute', top: 6, right: 6, backgroundColor: '#FF6B00', borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2 }}>
-              <Text style={{ color: 'white', fontSize: 8, fontWeight: 'bold' }}>NEW</Text>
+            <View style={{ backgroundColor: orange, alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 50, marginBottom: 6 }}>
+              <Text style={{ color: 'white', fontSize: 10, fontWeight: '800' }}>⭐ PREMIUM</Text>
             </View>
-            <Text style={{ fontSize: 28, marginBottom: 6 }}>🏛️</Text>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: textColor, textAlign: 'center' }}>
-              {t('कोर्ट तारीख', 'Court Date')}
-            </Text>
-            <Text style={{ fontSize: 10, color: subText, textAlign: 'center', marginTop: 2 }}>
-              {t('केस ट्रैक करें', 'Track your case')}
-            </Text>
-          </TouchableOpacity>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: textColor, marginBottom: 4 }}>{t('Silver Plan लें', 'Get Silver Plan')}</Text>
+            <Text style={{ fontSize: 12, color: subText, lineHeight: 17 }}>{t('Unlimited documents,\n40+ rights, AI scanner', 'Unlimited documents,\n40+ rights, AI scanner')}</Text>
+          </View>
+          <View style={{ alignItems: 'center', marginLeft: 16 }}>
+            <Text style={{ fontSize: 28, fontWeight: '800', color: orange }}>₹49</Text>
+            <Text style={{ fontSize: 11, color: subText }}>{t('/महीना', '/month')}</Text>
+            <TouchableOpacity
+              onPress={() => router.push('/premium')}
+              style={{ backgroundColor: orange, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10, marginTop: 8 }}
+            >
+              <Text style={{ color: 'white', fontWeight: '700', fontSize: 13 }}>{t('अभी लें', 'Get Now')}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* 5. Useful Tools Header */}
-        <Text style={{ fontSize: 15, fontWeight: 'bold', color: textColor, paddingHorizontal: 20, marginBottom: 14 }}>
-          {t('उपयोगी टूल्स', 'Useful Tools')}
-        </Text>
-
-        {/* 6. Tools Row 1 — ✅ FIX: proper titles, working routes, ek baar hi dikh raha */}
-        <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 8 }}>
-          {toolsRow1.map((tool, index) => (
+        {/* HELPLINES */}
+        <View style={{ paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10 }}>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: textColor }}>🚨 {t('आपातकालीन हेल्पलाइन', 'Emergency Helplines')}</Text>
+        </View>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 14, gap: 8 }}>
+          {helplines.map((h, i) => (
             <TouchableOpacity
-              key={index}
-              style={{ backgroundColor: cardBg, borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 0.5, borderColor: isDark ? '#2A3F55' : '#E0E0E0', flex: 1 }}
-              onPress={() => router.push(tool.route as any)}
+              key={i}
+              onPress={() => Linking.openURL(`tel:${h.num}`)}
+              style={{
+                width: (width - 48) / 3, backgroundColor: cardBg, borderRadius: 12,
+                padding: 12, alignItems: 'center', borderWidth: 1, borderColor: borderColor,
+              }}
             >
-              <Text style={{ fontSize: 20, marginBottom: 4 }}>{tool.icon}</Text>
-              <Text style={{ fontSize: 11, color: textColor, textAlign: 'center', fontWeight: '500' }}>
-                {tool.title}
-              </Text>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: '#EF4444' }}>{h.num}</Text>
+              <Text style={{ fontSize: 10, color: subText, marginTop: 3, textAlign: 'center' }}>{h.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Tools Row 2 */}
-        <View style={{ flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginBottom: 20 }}>
-          {toolsRow2.map((tool, index) => (
-            <TouchableOpacity
-              key={index}
-              style={{ backgroundColor: cardBg, borderRadius: 12, padding: 10, alignItems: 'center', borderWidth: 0.5, borderColor: isDark ? '#2A3F55' : '#E0E0E0', flex: 1 }}
-              onPress={() => router.push(tool.route as any)}
-            >
-              <Text style={{ fontSize: 20, marginBottom: 4 }}>{tool.icon}</Text>
-              <Text style={{ fontSize: 11, color: textColor, textAlign: 'center', fontWeight: '500' }}>
-                {tool.title}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        {/* DISCLAIMER */}
+        <View style={{
+          margin: 14, borderRadius: 12, padding: 14, flexDirection: 'row', gap: 10,
+          backgroundColor: isDark ? 'rgba(232,97,10,0.08)' : '#FFF8F0',
+          borderWidth: 1, borderColor: isDark ? 'rgba(232,97,10,0.2)' : 'rgba(232,97,10,0.15)',
+        }}>
+          <Text style={{ fontSize: 18 }}>⚠️</Text>
+          <Text style={{ flex: 1, fontSize: 12, color: subText, lineHeight: 18 }}>
+            {t(
+              'AI की जानकारी शैक्षिक उद्देश्य के लिए है। गंभीर मामलों में एक योग्य वकील से परामर्श अवश्य लें।',
+              'AI information is for educational purposes only. For serious matters, always consult a qualified lawyer.'
+            )}
+          </Text>
         </View>
 
-        {/* 7. Emergency Helplines */}
-        <Text style={{ fontSize: 15, fontWeight: 'bold', color: textColor, paddingHorizontal: 20, marginBottom: 14 }}>
-          {t('आपातकालीन हेल्पलाइन', 'Emergency Helplines')}
-        </Text>
 
-        <ScrollView
-          horizontal={true}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, gap: 8, marginBottom: 20 }}
-        >
-          {helplines.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={{ backgroundColor: cardBg, borderWidth: 0.5, borderColor: isDark ? '#2A3F55' : '#E0E0E0', borderRadius: 8, padding: 6, paddingHorizontal: 10, alignItems: 'center' }}
-              onPress={() => Linking.openURL('tel:' + item.num)}
-            >
-              <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#CC0000' }}>{item.num}</Text>
-              <Text style={{ fontSize: 10, color: subText }}>{item.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
 
-            {/* Footer */}
-        <View style={{ paddingVertical: 14, paddingHorizontal: 16, borderTopWidth: 0.5, borderTopColor: isDark ? '#2A3F55' : '#E0E0E0' }}>
+        {/* FOOTER */}
+        <View style={{ paddingVertical: 14, paddingHorizontal: 16, borderTopWidth: 1, borderTopColor: borderColor }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <TouchableOpacity onPress={() => router.push('/settings?section=privacy')} style={{ alignItems: 'center', minWidth: 80 }}>
               <Text style={{ fontSize: 20 }}>🔒</Text>
@@ -398,82 +273,17 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
           <TouchableOpacity
-            onPress={() => Linking.openURL('https://wa.me/918573821917?text=' + encodeURIComponent(t('नमस्ते! मुझे NyayMitra से सहायता चाहिए।', 'Hello! I need support from NyayMitra.')))}
-            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#25D366', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 20, gap: 8 }}
+            onPress={() => Linking.openURL('https://wa.me/918573821917')}
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#25D366', borderRadius: 10, paddingVertical: 10, gap: 8 }}
           >
-            <Text style={{ fontSize: 22 }}>💬</Text>
-            <View>
-              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 13 }}>{t('WhatsApp सपोर्ट', 'WhatsApp Support')}</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 10 }}>{t('तुरंत सहायता • सोम-शनि 10am-6pm', 'Instant Help • Mon-Sat 10am-6pm')}</Text>
-            </View>
+            <Text style={{ fontSize: 18 }}>💬</Text>
+            <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 13 }}>{t('WhatsApp सपोर्ट', 'WhatsApp Support')}</Text>
           </TouchableOpacity>
         </View>
-        <View style={{ height: 20 }} />
+
       </ScrollView>
       <AdBanner />
       <SideDrawer visible={drawerVisible} onClose={() => setDrawerVisible(false)} />
     </SafeAreaView>
   );
 }
-
-const NotificationItem = React.memo(({ notification, Colors, onPress, onDelete }: any) => (
-  <View style={[styles.notifItem, { borderBottomColor: Colors.border, backgroundColor: notification.read ? 'transparent' : Colors.background + '40' }]}>
-    <TouchableOpacity style={styles.notifContent} onPress={onPress}>
-      <View style={[styles.notifIconContainer, { backgroundColor: Colors.background }]}>
-        <Ionicons name={notification.icon || 'notifications-outline'} size={20} color={Colors.saffron} />
-      </View>
-      <View style={styles.notifTextContainer}>
-        <Text style={[styles.notifItemTitle, { color: Colors.textPrimary, fontWeight: notification.read ? '400' : '700' }]}>{notification.title}</Text>
-        <Text style={[styles.notifItemBody, { color: Colors.textSecondary }]} numberOfLines={1}>{notification.body}</Text>
-        <Text style={[styles.notifItemTime, { color: Colors.textLight, fontSize: 10 }]}>{notification.time}</Text>
-      </View>
-    </TouchableOpacity>
-    <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
-      <Ionicons name="close-circle-outline" size={20} color={Colors.textLight} />
-    </TouchableOpacity>
-  </View>
-));
-NotificationItem.displayName = 'NotificationItem';
-
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1 },
-  hamburgerBtn: { padding: 4 },
-  headerCenter: { flex: 1, alignItems: 'center' },
-  appName: { fontSize: 22, fontWeight: 'bold' },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  langToggle: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
-  langText: { color: '#fff', fontWeight: '700', fontSize: 12 },
-  bellBtn: { padding: 4, position: 'relative' },
-  notifBadge: { position: 'absolute', top: 0, right: 0, borderRadius: 8, minWidth: 16, height: 16, justifyContent: 'center', alignItems: 'center' },
-  notifCount: { fontSize: 10, fontWeight: '700', color: '#fff' },
-  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000 },
-  notifPanel: { position: 'absolute', top: 70, left: 10, right: 10, borderRadius: 16, padding: 16, zIndex: 1002, elevation: 10, ...Platform.select({ web: { boxShadow: '0px 5px 15px rgba(0,0,0,0.3)' }, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.3, shadowRadius: 10 } }) },
-  notifHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottomWidth: 1, paddingBottom: 10 },
-  notifTitle: { fontSize: 18, fontWeight: 'bold' },
-  markReadText: { fontSize: 14, fontWeight: '600' },
-  notifList: { gap: 12 },
-  notifItem: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, paddingVertical: 12 },
-  notifContent: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  notifIconContainer: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  notifTextContainer: { flex: 1 },
-  notifItemTitle: { fontSize: 14, marginBottom: 2 },
-  notifItemBody: { fontSize: 12, marginBottom: 4 },
-  notifItemTime: { fontSize: 11 },
-  deleteBtn: { padding: 8, marginLeft: 8 },
-  notifDot: { width: 8, height: 8, borderRadius: 4, marginLeft: 8 },
-  greetingCard: { flexDirection: 'row', margin: 16, borderRadius: 20, padding: 20, alignItems: 'center', elevation: 4, ...Platform.select({ web: { boxShadow: '0px 4px 12px rgba(0,0,0,0.1)' }, default: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 } }) },
-  greetingContent: { flex: 1 },
-  greetingText: { fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 4 },
-  greetingSub: { fontSize: 14, color: 'rgba(255,255,255,0.8)', marginBottom: 14 },
-  problemBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, paddingVertical: 10, borderRadius: 20, alignSelf: 'flex-start', gap: 6 },
-  problemBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  greetingEmoji: { fontSize: 48, marginLeft: 12 },
-  section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', paddingHorizontal: 20, marginBottom: 14 },
-  quickActionsGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 12 },
-  helplineScroll: { paddingHorizontal: 20, gap: 10 },
-  quickSolScroll: { paddingHorizontal: 20, gap: 12 },
-  disclaimer: { flexDirection: 'row', paddingHorizontal: 20, paddingVertical: 20, alignItems: 'center', gap: 8, opacity: 0.7 },
-  disclaimerText: { fontSize: 12, fontStyle: 'italic' },
-});

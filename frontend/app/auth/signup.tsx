@@ -21,6 +21,7 @@ export default function SignupScreen() {
     const [password, setPassword] = useState('');
     const [referralCode, setReferralCode] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleSignup = async () => {
         if (!name.trim() || !email.trim() || !password.trim()) {
@@ -148,18 +149,21 @@ export default function SignupScreen() {
                             <Ionicons name="lock-closed-outline" size={20} color={Colors.textSecondary} style={styles.inputIcon} />
                             <TextInput
                                 style={styles.input}
-                                placeholder="Password (minimum 6 characters)"
+                                placeholder="Password (min. 6 characters)"
                                 placeholderTextColor={Colors.textSecondary}
                                 value={password}
                                 onChangeText={setPassword}
-                                secureTextEntry
+                                secureTextEntry={!showPassword}
                             />
+                            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={{ padding: 4 }}>
+                                <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={20} color={Colors.textSecondary} />
+                            </TouchableOpacity>
                         </View>
                         <View style={[styles.inputContainer, { borderColor: referralCode ? Colors.saffron : Colors.border }]}>
                             <Ionicons name="gift-outline" size={20} color={referralCode ? Colors.saffron : Colors.textSecondary} style={styles.inputIcon} />
                             <TextInput
                                 style={styles.input}
-                                placeholder="Referral Code (Optional) - 7 दिन FREE"
+                                placeholder="Referral Code (Optional) — 7 दिन Silver FREE!"
                                 placeholderTextColor={Colors.textSecondary}
                                 value={referralCode}
                                 onChangeText={setReferralCode}
