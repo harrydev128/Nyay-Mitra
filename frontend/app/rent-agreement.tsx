@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, Share } from 'react-native';
+import ViewShot from 'react-native-view-shot';
+import { useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { useAppContext } from '../context/AppContext';
 import HeaderToggle from '../components/HeaderToggle';
@@ -17,6 +19,7 @@ export default function RentAgreementScreen() {
   const [form, setForm] = useState({ landlord: '', tenant: '', address: '', rent: '', deposit: '', startDate: '', duration: '', state: '' });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState('');
+  const viewShotRef = useRef<any>(null);
 
   const generate = async () => {
     if (!form.landlord || !form.tenant || !form.rent) {
@@ -25,13 +28,13 @@ export default function RentAgreementScreen() {
     }
     setLoading(true);
     try {
-      const res = await fetch('http://192.168.1.4:8001/api/documents/generate', {
+      const res = await fetch('https://nyay-mitra-production.up.railway.app/api/documents/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ template_type: 'rent_agreement', language, fields: form, user_situation: 'Generate complete rent agreement' })
       });
       const data = await res.json();
-      setResult(data.document || data.content || 'Document generated');
+      setResult(data.document || data.content || '');
     } catch (e) {
       Alert.alert(t('त्रुटि', 'Error'), t('कृपया दोबारा कोशिश करें', 'Please try again'));
     }
@@ -40,6 +43,7 @@ export default function RentAgreementScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <View style={{ backgroundColor: '#1a237e', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' }}>
         <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
           <Text style={{ color: '#fff', fontSize: 24 }}>←</Text>
@@ -49,7 +53,7 @@ export default function RentAgreementScreen() {
         </View>
         <HeaderToggle />
       </View>
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16 }}>
         {!result ? (
           <>
             {[
@@ -84,13 +88,60 @@ export default function RentAgreementScreen() {
           </>
         ) : (
           <>
-            <View style={{ backgroundColor: '#FFFFFF', borderRadius: 8, padding: 24, marginBottom: 16, borderWidth: 1, borderColor: '#E0E0E0' }}>
-              <Text style={{ textAlign: 'center', fontSize: 16, fontWeight: 'bold', color: '#1a237e', marginBottom: 16 }}>{t('किराया समझौता', 'Rent Agreement')}</Text>
-              <Text style={{ fontSize: 14, lineHeight: 22, color: '#333', textAlign: 'justify' }}>{result}</Text>
+            <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.95 }}>
+            <View style={{ backgroundColor: '#FFFFFF', marginBottom: 16, borderWidth: 1, borderColor: '#E0E0E0', overflow: 'hidden', minHeight: 700 }}>
+              {/* Full page watermark */}
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', zIndex: 0 }}>
+                {[0,1,2,3,4,5,6,7,8,9].map(i => (
+                  <Text key={i} style={{ fontSize: 18, color: 'rgba(232,97,10,0.05)', fontWeight: 'bold', transform: [{ rotate: '-45deg' }], marginVertical: 16, letterSpacing: 3 }}>
+                    NyayMitra • AI Generated • NyayMitra • AI Generated
+                  </Text>
+                ))}
+              </View>
+              {/* Document Content */}
+              <View style={{ padding: 28, zIndex: 1 }}>
+                {/* Header */}
+                <View style={{ alignItems: 'flex-end', marginBottom: 16 }}>
+                  <Text style={{ fontSize: 11, color: '#888', fontStyle: 'italic' }}>⚖️ NyayMitra - AI Legal Assistant</Text>
+                </View>
+                <View style={{ height: 1, backgroundColor: '#333', marginBottom: 20 }} />
+                {/* Title */}
+                <Text style={{ textAlign: 'center', fontSize: 16, fontWeight: 'bold', color: '#000', marginBottom: 20, letterSpacing: 1 }}>
+                  {t('किराया समझौता', 'RENT AGREEMENT')}
+                </Text>
+                {/* Body */}
+                <Text style={{ fontSize: 13, lineHeight: 24, color: '#111', textAlign: 'justify' }}>{result}</Text>
+                {/* Footer */}
+                <View style={{ marginTop: 40, borderTopWidth: 1, borderTopColor: '#ddd', paddingTop: 14, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 13, color: '#E8610A', fontWeight: 'bold', letterSpacing: 1 }}>⚖️ NyayMitra</Text>
+                  <Text style={{ fontSize: 11, color: '#666', marginTop: 3 }}>AI Generated Document | भारत का AI कानूनी सहायक</Text>
+                  <Text style={{ fontSize: 10, color: '#aaa', marginTop: 3, textAlign: 'center' }}>⚠️ कानूनी उपयोग से पहले किसी योग्य वकील से समीक्षा अवश्य करवाएं</Text>
+                </View>
+              </View>
             </View>
-            <TouchableOpacity style={{ backgroundColor: '#FF6B00', borderRadius: 12, padding: 16, alignItems: 'center', marginBottom: 8 }} onPress={() => setResult('')}>
-              <Text style={{ color: '#fff', fontWeight: 'bold' }}>{t('नया बनाएं', 'Create New')}</Text>
-            </TouchableOpacity>
+            </ViewShot>
+            <View style={{ gap: 8, marginBottom: 16 }}>
+              <TouchableOpacity
+                style={{ backgroundColor: '#FF6B00', borderRadius: 12, padding: 16, alignItems: 'center' }}
+                onPress={async () => {
+                  try {
+                    if (viewShotRef.current) {
+                      const uri = await viewShotRef.current.capture();
+                      await Share.share({ url: uri, message: t('किराया समझौता - NyayMitra', 'Rent Agreement - NyayMitra') });
+                    } else {
+                      await Share.share({ message: result });
+                    }
+                  } catch (e) {
+                    await Share.share({ message: result });
+                  }
+                }}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>📤 {t('Share / Print करें', 'Share / Print')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={{ backgroundColor: '#1a237e', borderRadius: 12, padding: 16, alignItems: 'center' }} onPress={() => setResult('')}>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{t('नया बनाएं', 'Create New')}</Text>
+              </TouchableOpacity>
+            </View>
           </>
         )}
       </ScrollView>
