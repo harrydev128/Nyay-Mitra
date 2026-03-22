@@ -122,7 +122,7 @@ window.onload = function() { rzp.open(); };
                 {plan.popular && <View style={[styles.badge, { backgroundColor: Colors.saffron }]}><Text style={styles.badgeText}>POPULAR</Text></View>}
                 {plan.bestValue && <View style={[styles.badge, { backgroundColor: Colors.gold }]}><Text style={styles.badgeText}>BEST VALUE</Text></View>}
               </View>
-              <View style={styles.planFeatures}>{plan.features.map((f, i) => (<View key={i} style={styles.featureItem}><Ionicons name="checkmark-circle" size={20} color={plan.color} /><Text style={[styles.featureText, { color: isDark ? '#F0F2FF' : '#1a237e' }]}>{f}</Text></View>))}</View>
+              <View style={styles.planFeatures}>{plan.features.map((f, i) => (<View key={i} style={styles.featureItem}><Ionicons name="checkmark-circle" size={20} color={plan.color} /><Text style={[styles.featureText, { color: '#333333' }]}>{f}</Text></View>))}</View>
               <Pressable style={({ pressed }) => [styles.selectButton, { backgroundColor: plan.disabled ? Colors.border : plan.color }, pressed && !plan.disabled && { opacity: 0.8 }]} onPress={() => !plan.disabled && handlePlanSelect(plan.name, plan.price)} disabled={plan.disabled}>
                 <Text style={[styles.selectButtonText, { color: plan.disabled ? Colors.textSecondary : '#fff' }]}>{plan.button}</Text>
                 {!plan.disabled && <Ionicons name="card" size={20} color="#fff" style={{ marginLeft: 8 }} />}

@@ -14,9 +14,9 @@ from enum import Enum
 # Load environment variables from .env if present
 load_dotenv()
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-OPENROUTER_MODEL = "mistralai/mistral-small-3.1-24b-instruct:free"
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 OPENROUTER_VISION_MODEL = "meta-llama/llama-3.2-11b-vision-instruct:free"
 
 SYSTEM_PROMPT = (
@@ -48,8 +48,8 @@ SYSTEM_PROMPT = (
     "Always be respectful, clear, and helpful. You are serving crores of Indians who cannot afford lawyers."
 )
 
-if not OPENROUTER_API_KEY:
-    raise RuntimeError("OPENROUTER_API_KEY environment variable is not set")
+if not GROQ_API_KEY:
+    raise RuntimeError("GROQ_API_KEY environment variable is not set")
 
 app = FastAPI(title="NyayMitra Backend", version="1.0.0")
 
@@ -127,129 +127,58 @@ class ScanDocumentResponse(BaseModel):
     analysis: str
 
 
-def call_openrouter(messages: list) -> str:
-    """Call OpenRouter and return the assistant message content."""
+def call_groq(messages: list, system_prompt: str = "") -> str:
+    import requests
     headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://nyaymitra.app",
-        "X-Title": "NyayMitra Backend",
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
     }
-
+    all_messages = []
+    if system_prompt:
+        all_messages.append({"role": "system", "content": system_prompt})
+    all_messages.extend(messages)
+    
     payload = {
-        "model": OPENROUTER_MODEL,
-        "messages": messages,
+        "model": GROQ_MODEL,
+        "messages": all_messages,
+        "max_tokens": 1024,
+        "temperature": 0.7
     }
-
-    try:
-        resp = requests.post(
-            OPENROUTER_API_URL,
-            headers=headers,
-            json=payload,
-            timeout=60,
-        )
-    except requests.RequestException as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Error contacting OpenRouter: {exc}",
-        ) from exc
-
-    if not resp.ok:
-        raise HTTPException(
-            status_code=resp.status_code,
-            detail=f"OpenRouter error: {resp.text}",
-        )
-
-    data = resp.json()
-    try:
-        content = data["choices"][0]["message"]["content"]
-    except (KeyError, IndexError, TypeError):
-        raise HTTPException(
-            status_code=500,
-            detail="Invalid response structure from OpenRouter",
-        )
-
-    return content
+    response = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
+    if response.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"Groq error: {response.text}")
+    return response.json()["choices"][0]["message"]["content"]
 
 
-@app.post(
-    "/api/chat",
-    response_model=ChatResponse,
-    dependencies=[Depends(rate_limiter)],
-)
+
+@app.post("/api/chat", response_model=ChatResponse, dependencies=[Depends(rate_limiter)])
 async def chat_endpoint(body: ChatRequest, request: Request) -> ChatResponse:
-    """
-    Chat endpoint.
-
-    Accepts:
-      { "message": "user text", "session_id": "optional", "language": "hindi|english" }
-
-    Returns:
-      { "response": "AI reply", "message_id": "id" }
-    """
     language = body.language or "hi"
-
-    if language == 'en':
-        lang_instruction = "IMPORTANT: You must respond ONLY in English. Do not use Hindi at all."
+    if language == "en":
+        lang_instruction = "IMPORTANT: Respond ONLY in English."
     else:
-        lang_instruction = "IMPORTANT: You must respond ONLY in Hindi. Do not use English at all."
+        lang_instruction = "IMPORTANT: Respond ONLY in Hindi."
 
     system_prompt = (
-        f"You are NyayMitra, India's official AI legal awareness assistant for Indian citizens. {lang_instruction}\n"
-        "Only answer questions related to Indian law, legal rights, court procedures, police matters, property, family law, labour law, consumer rights, RTI, and government schemes.\n"
-        "For unrelated topics, politely say: 'मैं केवल भारतीय कानून से संबंधित सवालों का जवाब दे सकता हूं।'\n"
-        "For SHORT questions: Give direct answer in 2-4 lines with relevant law name.\n"
-        "For DETAILED questions use this format:\n"
-        "📋 स्थिति: (1 line summary)\n"
-        "⚖️ कानून क्या कहता है: (relevant Indian acts and sections)\n"
-        "🔐 आपके अधिकार: (specific rights)\n"
-        "✅ तुरंत करें: (numbered steps)\n"
-        "📞 हेल्पलाइन: (relevant number)\n"
-        "⚠️ अस्वीकरण: यह AI कानूनी जागरूकता है, कानूनी सलाह नहीं। अपने मामले के लिए किसी योग्य वकील से अवश्य परामर्श लें।\n"
-        "Never fabricate law sections. If unsure, say 'इस विषय में किसी वकील से सलाह लें'."
-    )
-    
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": body.message},
-    ]
-
-    reply_text = call_openrouter(messages)
-    message_id = str(uuid.uuid4())
-
-    return ChatResponse(response=reply_text, message_id=message_id)
-
-
-def build_document_prompt(template_type: TemplateType, fields: Dict[str, Any], user_situation: Optional[str]) -> str:
-    """Create a Hindi prompt for document generation based on template type, fields and situation."""
-    base_intro = (
-        "नीचे दिए गए विवरण के आधार पर एक विस्तृत लेकिन सरल हिंदी में कानूनी दस्तावेज़ तैयार करें। "
-        "दस्तावेज़ औपचारिक भाषा में हो, पैराग्राफ़ साफ-साफ हों, और अंत में यह भी लिखें कि "
-        "गंभीर मामलों में वास्तविक वकील से सलाह लेना ज़रूरी है।\n\n"
+        f"You are NyayMitra, India's AI legal awareness assistant. {lang_instruction}\n"
+        "Only answer questions related to Indian law, legal rights, court procedures, police, property, family law, labour law, consumer rights, RTI, government schemes.\n"
+        "For SHORT questions: 2-4 lines with law name.\n"
+        "For DETAILED questions:\n"
+        "📋 स्थिति: (summary)\n"
+        "⚖️ कानून: (relevant acts/sections)\n"
+        "🔐 आपके अधिकार: (rights)\n"
+        "✅ तुरंत करें: (steps)\n"
+        "📞 हेल्पलाइन: (number)\n"
+        "⚠️ अस्वीकरण: यह AI जागरूकता है, कानूनी सलाह नहीं। वकील से परामर्श लें।"
     )
 
-    template_names = {
-        TemplateType.rent_notice: "किराया विवाद नोटिस",
-        TemplateType.labor_complaint: "श्रम शिकायत (Labor Complaint)",
-        TemplateType.police_complaint: "पुलिस शिकायत पत्र (Police Complaint)",
-        TemplateType.consumer_complaint: "उपभोक्ता शिकायत (Consumer Complaint)",
-        TemplateType.custom: "कस्टम कानूनी दस्तावेज़"
-    }
+    messages = [{"role": "user", "content": body.message}]
+    try:
+        reply = call_groq(messages, system_prompt)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI error: {str(e)}")
 
-    doc_type_line = f"दस्तावेज़ प्रकार: {template_names.get(template_type, 'कानूनी दस्तावेज़')}\n"
-    
-    fields_text = "दस्तावेज़ के लिए जानकारी:\n" + "\n".join([f"- {k}: {v}" for k, v in fields.items()])
-    situation_text = f"\n\nउपयोगकर्ता की स्थिति: {user_situation}" if user_situation else ""
-
-    return (
-        f"{base_intro}"
-        f"{doc_type_line}"
-        f"{fields_text}"
-        f"{situation_text}"
-        f"\n\nपूरी तरह तैयार हिंदी दस्तावेज़ लिखें। यह एक वास्तविक दस्तावेज़ होना चाहिए, "
-        f"केवल एक टेम्पलेट नहीं। सभी विवरणों को सही जगह पर भरें। केवल दस्तावेज़ का पाठ लौटाएँ, कोई अतिरिक्त टिप्पणी न दें।"
-    )
-
+    return ChatResponse(response=reply, message_id=str(uuid.uuid4()))
 
 @app.post(
     "/api/documents/generate",
@@ -301,7 +230,7 @@ async def generate_document_endpoint(body: DocumentRequest, request: Request) ->
         {"role": "user", "content": user_prompt},
     ]
 
-    document_text = call_openrouter(messages)
+    document_text = call_groq(messages, system_prompt)
     return DocumentResponse(document=document_text)
 
 
