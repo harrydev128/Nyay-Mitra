@@ -102,10 +102,10 @@ export default function HomeScreen() {
             {t('अपने अधिकार जानें, दस्तावेज़ बनाएं — सरल भाषा में।', 'Know your rights, make documents — in simple language.')}
           </Text>
           <TouchableOpacity
-            onPress={() => router.push('/(tabs)/chat')}
+            onPress={() => router.push('/emergency')}
             style={{ backgroundColor: 'white', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 10, alignSelf: 'flex-start' }}
           >
-            <Text style={{ color: orange, fontWeight: '700', fontSize: 14 }}>📲 {t('AI वकील से पूछें', 'Ask AI Lawyer')}</Text>
+            <Text style={{ color: '#CC0000', fontWeight: '700', fontSize: 14 }}>🆘 {t('Emergency SOS', 'Emergency SOS')}</Text>
           </TouchableOpacity>
           <Text style={{ position: 'absolute', right: 14, bottom: -8, fontSize: 72, opacity: 0.18 }}>⚖️</Text>
         </View>
