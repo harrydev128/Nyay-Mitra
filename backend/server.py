@@ -16,6 +16,7 @@ load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 OPENROUTER_VISION_MODEL = "meta-llama/llama-3.2-11b-vision-instruct:free"
 
@@ -449,15 +450,18 @@ Be specific and helpful."""
 
     mime_type = body.file_type
 
-    # Fallback/Text-based for PDF or vision fail
-    fallback_messages = [
-        {"role": "system", "content": system_prompt},
-        {
-            "role": "user",
-            "content": f"Document content (base64) provided. Language: {body.language}. Please analyze according to instructions."
-        },
-    ]
+    if mime_type.startswith("image/"):
+        try:
+            vision_messages = [{"role": "user", "content": [{"type": "text", "text": system_prompt + f"\\nLanguage: {body.language}"}, {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{body.file_data}"}}]}]
+            headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+            payload = {"model": "meta-llama/llama-4-scout-17b-16e-instruct", "messages": vision_messages, "max_tokens": 2048}
+            resp = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=60)
+            if resp.status_code == 200:
+                return AnalyzeDocumentResponse(analysis=resp.json()["choices"][0]["message"]["content"])
+        except Exception:
+            pass
 
+    fallback_messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": f"Indian legal document analyze karo. Language: {body.language}"}]
     analysis_text = call_groq(fallback_messages, "")
     return AnalyzeDocumentResponse(analysis=analysis_text)
 
