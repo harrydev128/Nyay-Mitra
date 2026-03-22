@@ -9,7 +9,8 @@ import {
   Platform,
   Pressable,
 } from 'react-native';
-import RazorpayCheckout from 'react-native-razorpay';
+import { WebView } from 'react-native-webview';
+import { Modal } from 'react-native';
 import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,44 +27,62 @@ export default function PremiumScreen() {
 
   const getText = (hindi: string, english: string) => language === 'hi' ? hindi : english;
 
+  const [paymentVisible, setPaymentVisible] = useState(false);
+  const [paymentHTML, setPaymentHTML] = useState('');
+
   const handlePlanSelect = useCallback((plan: string, price: number) => {
     if (price === 0) return;
+    const key = Constants.expoConfig?.extra?.razorpayKey || '';
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f5f5f5;font-family:sans-serif;}</style>
+</head>
+<body>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+var options = {
+  key: '${key}',
+  amount: ${price * 100},
+  currency: 'INR',
+  name: 'NyayMitra',
+  description: '${plan} Plan',
+  theme: { color: '#E8610A' },
+  handler: function(response) {
+    window.ReactNativeWebView.postMessage(JSON.stringify({success: true, payment_id: response.razorpay_payment_id}));
+  },
+  modal: {
+    ondismiss: function() {
+      window.ReactNativeWebView.postMessage(JSON.stringify({success: false, cancelled: true}));
+    }
+  }
+};
+var rzp = new Razorpay(options);
+rzp.on('payment.failed', function(response) {
+  window.ReactNativeWebView.postMessage(JSON.stringify({success: false, error: response.error.description}));
+});
+window.onload = function() { rzp.open(); };
+</script>
+</body>
+</html>`;
+    setPaymentHTML(html);
+    setPaymentVisible(true);
+  }, [language]);
 
-    const options = {
-      description: `NyayMitra ${plan} Plan`,
-      image: 'https://nyaymitra.app/logo.png',
-      currency: 'INR',
-      key: Constants.expoConfig?.extra?.razorpayKey || process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || '',
-      amount: price * 100, // paise mein
-      name: 'NyayMitra',
-      prefill: {
-        email: 'user@example.com',
-        contact: '9999999999',
-        name: 'NyayMitra User',
-      },
-      theme: { color: '#FF6B00' },
-    };
-
-    RazorpayCheckout.open(options)
-      .then((data: any) => {
-        // Payment successful
+  const handleWebViewMessage = useCallback((event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      setPaymentVisible(false);
+      if (data.success) {
         Alert.alert(
           getText('भुगतान सफल! 🎉', 'Payment Successful! 🎉'),
-          getText(
-            `${plan} Plan activate हो गया है। Payment ID: ${data.razorpay_payment_id}`,
-            `${plan} Plan activated. Payment ID: ${data.razorpay_payment_id}`
-          )
+          getText(`Payment ID: ${data.payment_id}`, `Payment ID: ${data.payment_id}`)
         );
-        // TODO: Supabase mein plan update karo
-      })
-      .catch((error: any) => {
-        if (error.code !== 'PAYMENT_CANCELLED') {
-          Alert.alert(
-            getText('भुगतान विफल', 'Payment Failed'),
-            getText('कृपया पुनः प्रयास करें।', 'Please try again.')
-          );
-        }
-      });
+      } else if (!data.cancelled) {
+        Alert.alert(getText('भुगतान विफल', 'Payment Failed'), data.error || getText('पुनः प्रयास करें', 'Please try again'));
+      }
+    } catch(e) {}
   }, [language]);
 
   const plans = [
@@ -74,6 +93,16 @@ export default function PremiumScreen() {
   ];
 
   return (
+    <>
+    <Modal visible={paymentVisible} animationType="slide" onRequestClose={() => setPaymentVisible(false)}>
+      <WebView
+        source={{ html: paymentHTML }}
+        onMessage={handleWebViewMessage}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        style={{ flex: 1, marginTop: 50 }}
+      />
+    </Modal>
     <SafeAreaView style={[styles.container, { backgroundColor: Colors.background }]} edges={['top']}>
       <View style={[styles.header, { backgroundColor: Colors.white, borderBottomColor: Colors.border }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}><Ionicons name="arrow-back" size={24} color={Colors.textPrimary} /></TouchableOpacity>
@@ -111,6 +140,7 @@ export default function PremiumScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
+    </>
   );
 }
 
