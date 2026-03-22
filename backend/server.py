@@ -180,6 +180,21 @@ async def chat_endpoint(body: ChatRequest, request: Request) -> ChatResponse:
 
     return ChatResponse(response=reply, message_id=str(uuid.uuid4()))
 
+
+def build_document_prompt(template_type, fields: dict, user_situation=None) -> str:
+    template_names = {
+        "rent_notice": "किराया विवाद नोटिस",
+        "labor_complaint": "श्रम शिकायत",
+        "police_complaint": "पुलिस शिकायत पत्र",
+        "consumer_complaint": "उपभोक्ता शिकायत",
+        "custom": "कस्टम कानूनी दस्तावेज़"
+    }
+    type_str = str(template_type.value) if hasattr(template_type, 'value') else str(template_type)
+    doc_type = template_names.get(type_str, "कानूनी दस्तावेज़")
+    fields_text = "\n".join([f"- {k}: {v}" for k, v in fields.items()])
+    situation = f"\n\nस्थिति: {user_situation}" if user_situation else ""
+    return f"दस्तावेज़ प्रकार: {doc_type}\n\nजानकारी:\n{fields_text}{situation}\n\nपूरा दस्तावेज़ हिंदी में लिखें।"
+
 @app.post(
     "/api/documents/generate",
     response_model=DocumentResponse,
@@ -230,7 +245,7 @@ async def generate_document_endpoint(body: DocumentRequest, request: Request) ->
         {"role": "user", "content": user_prompt},
     ]
 
-    document_text = call_groq(messages, system_prompt)
+    document_text = call_groq(messages, document_system_prompt)
     return DocumentResponse(document=document_text)
 
 
@@ -314,7 +329,7 @@ async def scan_document_endpoint(body: ScanDocumentRequest, request: Request) ->
         },
     ]
 
-    analysis_text = call_openrouter(fallback_messages)
+    analysis_text = call_groq(fallback_messages, "")
     return ScanDocumentResponse(analysis=analysis_text)
 
 
@@ -439,7 +454,7 @@ Be specific and helpful."""
         },
     ]
 
-    analysis_text = call_openrouter(fallback_messages)
+    analysis_text = call_groq(fallback_messages, "")
     return AnalyzeDocumentResponse(analysis=analysis_text)
 
 
