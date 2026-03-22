@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, Share, Linking } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, Share, Linking, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppContext } from '../context/AppContext';
 import HeaderToggle from '../components/HeaderToggle';
@@ -179,7 +179,8 @@ If no reply in 30 days, file First Appeal — Section 19(1)
         <HeaderToggle />
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
         {step === 1 && (
           <>
             <View style={{ backgroundColor: isDark ? '#1B2A1B' : '#E8F5E9', borderRadius: 12, padding: 12, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#00AA44' }}>
@@ -260,10 +261,27 @@ If no reply in 30 days, file First Appeal — Section 19(1)
 
         {step === 3 && (
           <>
-            <View style={{ backgroundColor: '#fff', borderRadius: 8, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: '#E0E0E0' }}>
-              <Text style={{ fontSize: 13, lineHeight: 22, color: '#111', fontFamily: 'monospace' }}>
-                {generatedRTI}
-              </Text>
+            <View style={{ backgroundColor: '#fff', borderRadius: 8, marginBottom: 16, borderWidth: 1, borderColor: '#E0E0E0', overflow: 'hidden', minHeight: 600 }}>
+              {/* Full page AI watermark */}
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', zIndex: 0 }}>
+                {[0,1,2,3,4,5,6,7].map(i => (
+                  <Text key={i} style={{ fontSize: 22, color: 'rgba(232,97,10,0.06)', fontWeight: 'bold', transform: [{ rotate: '-45deg' }], marginVertical: 18, letterSpacing: 4 }}>
+                    NyayMitra • AI Generated • NyayMitra • AI Generated
+                  </Text>
+                ))}
+              </View>
+              {/* Document Content */}
+              <View style={{ padding: 24, zIndex: 1 }}>
+                <Text style={{ fontSize: 13, lineHeight: 24, color: '#111', fontFamily: 'monospace' }}>
+                  {generatedRTI}
+                </Text>
+                {/* Footer */}
+                <View style={{ marginTop: 30, borderTopWidth: 1, borderTopColor: '#ddd', paddingTop: 12, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 12, color: '#E8610A', fontWeight: 'bold' }}>⚖️ NyayMitra</Text>
+                  <Text style={{ fontSize: 10, color: '#888', marginTop: 2 }}>AI Generated Document | भारत का AI कानूनी सहायक</Text>
+                  <Text style={{ fontSize: 10, color: '#aaa', marginTop: 2 }}>⚠️ कानूनी उपयोग से पहले किसी योग्य वकील से समीक्षा करवाएं</Text>
+                </View>
+              </View>
             </View>
 
             <View style={{ gap: 8 }}>
@@ -290,6 +308,7 @@ If no reply in 30 days, file First Appeal — Section 19(1)
         )}
         <View style={{ height: 40 }} />
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
