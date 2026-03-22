@@ -50,7 +50,13 @@ const TEMPLATE_FIELDS: any = {
         { key: 'purchase_date', label_hi: 'खरीद की तारीख', label_en: 'Purchase Date', placeholder_hi: 'उदा: 05/03/2026', placeholder_en: 'e.g. 05/03/2026' },
         { key: 'description', label_hi: 'समस्या का विवरण', label_en: 'Problem Description', placeholder_hi: 'उदा: खराब सामान मिला', placeholder_en: 'e.g. Received damaged product' },
         { key: 'amount_requested', label_hi: 'हर्जाना राशि', label_en: 'Claim Amount', placeholder_hi: 'उदा: 5,000', placeholder_en: 'e.g. 5,000' },
-    ]
+    ],
+    custom: [
+        { key: 'your_name', label_hi: 'आपका नाम', label_en: 'Your Name', placeholder_hi: 'उदा: राम कुमार', placeholder_en: 'e.g. Ram Kumar' },
+        { key: 'address', label_hi: 'आपका पता', label_en: 'Your Address', placeholder_hi: 'उदा: 123, मुख्य बाजार', placeholder_en: 'e.g. 123, Main Market' },
+        { key: 'situation', label_hi: 'अपनी स्थिति विस्तार से लिखें', label_en: 'Describe your situation in detail', placeholder_hi: 'उदा: मेरे साथ क्या हुआ...', placeholder_en: 'e.g. What happened to me...' },
+        { key: 'relief_needed', label_hi: 'आप क्या चाहते हैं?', label_en: 'What relief do you need?', placeholder_hi: 'उदा: FIR दर्ज हो, मुआवजा मिले', placeholder_en: 'e.g. FIR to be filed, compensation needed' },
+    ],
 };
 
 const TEMPLATES = {
@@ -127,7 +133,7 @@ export default function DocGeneratorScreen() {
     };
 
     const handleGenerate = async () => {
-        const fields = TEMPLATE_FIELDS[selectedId!];
+        const fields = TEMPLATE_FIELDS[selectedId!] || [];
         for (const field of fields) {
             if (!formFields[field.key]) {
                 Alert.alert(getText('अपूर्ण फॉर्म', 'Incomplete Form'), getText(`${field.label_hi} आवश्यक है`, `${field.label_en} is required`));
@@ -303,7 +309,7 @@ export default function DocGeneratorScreen() {
     );
 
     const renderStep2 = () => {
-        const fields = TEMPLATE_FIELDS[selectedId!];
+        const fields = TEMPLATE_FIELDS[selectedId!] || [];
         const template = TEMPLATES[language === 'hi' ? 'hindi' : 'english'].find(t => t.id === selectedId);
         return (
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.stepContainer}>
