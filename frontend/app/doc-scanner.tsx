@@ -1,3 +1,4 @@
+import { Config } from '../constants/Config';
 import React, { useState, useCallback } from 'react';
 import {
     View,
@@ -96,7 +97,7 @@ export default function DocScannerScreen() {
         setLoading(true);
         setAnalysis(null);
         try {
-            const response = await fetch('http://localhost:8001/api/analyze-document', {
+            const response = await fetch(`${Config.API_URL}/api/analyze-document`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ file_data: base64, file_type: mimeType, language: language }),

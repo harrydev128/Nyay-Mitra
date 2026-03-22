@@ -447,51 +447,7 @@ legal document, photo, bill, ID, certificate,
 government form, or anything else.
 Be specific and helpful."""
 
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://nyaymitra.app",
-        "X-Title": "NyayMitra Backend",
-    }
-
     mime_type = body.file_type
-    data_url = f"data:{mime_type};base64,{body.file_data}"
-
-    # Use vision model if available for images
-    if mime_type.startswith("image/"):
-        vision_payload = {
-            "model": OPENROUTER_VISION_MODEL,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": f"Language: {body.language}",
-                        },
-                        {
-                            "type": "input_image",
-                            "image_url": data_url,
-                        },
-                    ],
-                },
-            ],
-        }
-
-        try:
-            resp = requests.post(
-                OPENROUTER_API_URL,
-                headers=headers,
-                json=vision_payload,
-                timeout=90,
-            )
-            if resp.ok:
-                data = resp.json()
-                content = data["choices"][0]["message"]["content"]
-                return AnalyzeDocumentResponse(analysis=content)
-        except requests.RequestException:
-            pass
 
     # Fallback/Text-based for PDF or vision fail
     fallback_messages = [
