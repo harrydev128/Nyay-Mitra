@@ -77,11 +77,22 @@ export default function ChatScreen() {
     if (!inputText.trim() || isLoading) return;
     const timeSinceLastRequest = Date.now() - lastRequestTime;
     if (timeSinceLastRequest < 2000) return;
+    
+    // User message turant chat mein add karo
+    const userMsg: Message = {
+      id: `u_${Date.now()}`,
+      role: 'user',
+      content: inputText.trim(),
+      timestamp: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, userMsg]);
+    setInputText(''); // Input clear karo
+    
     setIsLoading(true);
     setLastRequestTime(Date.now());
     Keyboard.dismiss();
     try {
-      const res = await chatAPI.sendMessage('local', inputText, language);
+      const res = await chatAPI.sendMessage('local', userMsg.content, language);
       const assistantMsg: Message = { id: res.message_id || `a_${Date.now()}`, role: 'assistant', content: res.response, timestamp: new Date().toISOString() };
       setMessages(prev => [...prev, assistantMsg]);
       const stats = await AsyncStorage.getItem('stats_ai_count');
