@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, Share, Linking, KeyboardAvoidingView, Platform } from 'react-native';
+import ViewShot from 'react-native-view-shot';
 import { useRouter } from 'expo-router';
 import { useAppContext } from '../context/AppContext';
 import HeaderToggle from '../components/HeaderToggle';
@@ -17,6 +18,7 @@ const RTI_TEMPLATES = [
 export default function RTIWriterScreen() {
   const router = useRouter();
   const { theme, language } = useAppContext();
+  const viewShotRef = useRef<any>(null);
   const isDark = theme === 'dark';
   const bg = isDark ? '#0D1B2A' : '#F5F5F5';
   const cardBg = isDark ? '#1B2B3B' : '#FFFFFF';
@@ -261,6 +263,7 @@ If no reply in 30 days, file First Appeal — Section 19(1)
 
         {step === 3 && (
           <>
+            <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }}>
             <View style={{ backgroundColor: '#fff', borderRadius: 8, marginBottom: 16, borderWidth: 1, borderColor: '#E0E0E0', overflow: 'hidden', minHeight: 600 }}>
               {/* Full page AI watermark */}
               <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', zIndex: 0 }}>
@@ -283,11 +286,23 @@ If no reply in 30 days, file First Appeal — Section 19(1)
                 </View>
               </View>
             </View>
+            </ViewShot>
 
             <View style={{ gap: 8 }}>
               <TouchableOpacity
                 style={{ backgroundColor: '#FF6B00', borderRadius: 12, padding: 14, alignItems: 'center' }}
-                onPress={() => Share.share({ message: generatedRTI })}
+                onPress={async () => {
+                  try {
+                    if (viewShotRef.current) {
+                      const uri = await viewShotRef.current.capture();
+                      await Share.share({ url: uri, message: 'RTI Application - NyayMitra' });
+                    } else {
+                      await Share.share({ message: generatedRTI });
+                    }
+                  } catch (e) {
+                    await Share.share({ message: generatedRTI });
+                  }
+                }}
               >
                 <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 15 }}>{t('📤 Share / Print करें', '📤 Share / Print')}</Text>
               </TouchableOpacity>
