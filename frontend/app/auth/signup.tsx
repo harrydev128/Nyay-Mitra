@@ -163,13 +163,16 @@ export default function SignupScreen() {
                             <Ionicons name="gift-outline" size={20} color={referralCode ? Colors.saffron : Colors.textSecondary} style={styles.inputIcon} />
                             <TextInput
                                 style={styles.input}
-                                placeholder="Referral Code (Optional) — 7 दिन Silver FREE!"
+                                placeholder="Referral Code (Optional)"
                                 placeholderTextColor={Colors.textSecondary}
                                 value={referralCode}
                                 onChangeText={setReferralCode}
                                 autoCapitalize="characters"
                             />
                         </View>
+                        <Text style={{ color: Colors.saffron, fontSize: 12, marginTop: -10, marginBottom: 10, marginLeft: 4 }}>
+                            🎁 Referral Code डालें — 7 दिन Silver FREE मिलेगा!
+                        </Text>
                         <Pressable
                             style={({ pressed }) => [styles.signupButton, pressed && { opacity: 0.8 }]}
                             onPress={handleSignup}

@@ -33,6 +33,7 @@ interface AppContextType {
   setNotificationPanel: (visible: boolean) => void;
   toggleNotificationPanel: () => void;
   logout: () => Promise<void>;
+  isLoading: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -45,14 +46,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [userEmail, setUserEmail] = useState('');
   const [user, setUser] = useState<User | null>(null);
   const [notificationPanel, setNotificationPanel] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const toggleNotificationPanel = () => setNotificationPanel(!notificationPanel);
 
   // Load user data on startup
   React.useEffect(() => {
-    loadUserData();
-    loadTheme();
-    loadLanguage();
+    Promise.all([loadUserData(), loadTheme(), loadLanguage()]).finally(() => setIsLoading(false));
   }, []);
 
   const loadLanguage = async () => {

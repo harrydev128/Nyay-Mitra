@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Alert,
   Platform,
   Pressable,
+  Modal,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Modal } from 'react-native';
