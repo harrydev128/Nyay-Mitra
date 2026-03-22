@@ -63,7 +63,14 @@ export default function ChatScreen() {
       id: 'welcome', role: 'assistant', timestamp: new Date().toISOString(),
       content: t('welcome_message', language)
     };
-    setMessages([welcome as Message]);
+    setMessages(prev => {
+      // Sirf welcome message update karo, baaki messages rakho
+      if (prev.length === 0) return [welcome as Message];
+      if (prev[0].id === 'welcome') {
+        return [welcome as Message, ...prev.slice(1)];
+      }
+      return prev;
+    });
   }, [language, t]);
 
   const sendMessage = useCallback(async () => {
