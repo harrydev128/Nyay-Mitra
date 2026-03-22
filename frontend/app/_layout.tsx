@@ -13,6 +13,9 @@ export default function RootLayout() {
             animationDuration: 200,
           }}
         >
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="auth" options={{ headerShown: false }} />
           <Stack.Screen name="emergency" options={{ headerShown: false }} />
           <Stack.Screen name="rent-agreement" options={{ headerShown: false }} />
           <Stack.Screen name="salary-calculator" options={{ headerShown: false }} />
