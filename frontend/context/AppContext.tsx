@@ -142,6 +142,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setNotificationPanel,
         toggleNotificationPanel,
         logout,
+        isLoading,
       }}
     >
       {children}

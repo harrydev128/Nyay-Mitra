@@ -11,7 +11,6 @@ import {
   Modal,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { Modal } from 'react-native';
 import Constants from 'expo-constants';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
