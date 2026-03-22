@@ -182,18 +182,52 @@ async def chat_endpoint(body: ChatRequest, request: Request) -> ChatResponse:
 
 
 def build_document_prompt(template_type, fields: dict, user_situation=None) -> str:
-    template_names = {
-        "rent_notice": "किराया विवाद नोटिस",
-        "labor_complaint": "श्रम शिकायत",
-        "police_complaint": "पुलिस शिकायत पत्र",
-        "consumer_complaint": "उपभोक्ता शिकायत",
-        "custom": "कस्टम कानूनी दस्तावेज़"
-    }
     type_str = str(template_type.value) if hasattr(template_type, 'value') else str(template_type)
-    doc_type = template_names.get(type_str, "कानूनी दस्तावेज़")
+    
+    legal_context = {
+        "rent_notice": (
+            "किराया विवाद नोटिस",
+            "Transfer of Property Act 1882, Sections 106-111 | UP Urban Buildings Act 1972 | "
+            "Indian Contract Act 1872 | CPC Order 39 (Injunction) के तहत यह नोटिस तैयार करें। "
+            "किरायेदार को 15 दिन का नोटिस देना अनिवार्य है। बकाया किराया, नुकसान और कोर्ट जाने की चेतावनी शामिल करें।"
+        ),
+        "labor_complaint": (
+            "श्रम शिकायत पत्र",
+            "Industrial Disputes Act 1947 | Minimum Wages Act 1948 | Payment of Wages Act 1936 | "
+            "Employees Compensation Act 1923 | Labour Court के अधिकार क्षेत्र के तहत यह शिकायत तैयार करें। "
+            "श्रम विभाग और Labour Commissioner को संबोधित करें।"
+        ),
+        "police_complaint": (
+            "पुलिस शिकायत पत्र",
+            "BNSS 2023 Section 173 (FIR) | BNS 2023 की संबंधित धाराएं | "
+            "Constitution Article 21 (जीवन का अधिकार) | Article 22 (गिरफ्तारी से सुरक्षा) | "
+            "BNSS Section 35 (गिरफ्तारी के अधिकार) | BNSS Section 57 (24 घंटे में Magistrate के सामने पेश करना अनिवार्य) | "
+            "Habeas Corpus writ के आधार पर शिकायत तैयार करें। SP/DIG को संबोधित करें।"
+        ),
+        "consumer_complaint": (
+            "उपभोक्ता शिकायत पत्र",
+            "Consumer Protection Act 2019, Sections 34-36 | District Consumer Disputes Redressal Commission | "
+            "Deficiency in Service (Section 2(11)) | Unfair Trade Practice (Section 2(47)) | "
+            "₹50 लाख तक District Forum में complaint होती है। 30 दिन में notice mandatory है।"
+        ),
+        "custom": (
+            "कानूनी दस्तावेज़",
+            "Indian Contract Act 1872 | Specific Relief Act 1963 | CPC 1908 | "
+            "Constitution of India | BNS 2023 | BNSS 2023 | RTI Act 2005 — "
+            "स्थिति के अनुसार सबसे उपयुक्त कानूनी धाराएं उपयोग करें।"
+        ),
+    }
+    
+    doc_name, law_context = legal_context.get(type_str, ("कानूनी दस्तावेज़", "Indian Law"))
     fields_text = "\n".join([f"- {k}: {v}" for k, v in fields.items()])
-    situation = f"\n\nस्थिति: {user_situation}" if user_situation else ""
-    return f"दस्तावेज़ प्रकार: {doc_type}\n\nजानकारी:\n{fields_text}{situation}\n\nपूरा दस्तावेज़ हिंदी में लिखें।"
+    situation = f"\nउपयोगकर्ता की स्थिति: {user_situation}" if user_situation else ""
+    
+    return (
+        f"दस्तावेज़ प्रकार: {doc_name}\n\n"
+        f"कानूनी आधार: {law_context}\n\n"
+        f"प्रदत्त जानकारी:\n{fields_text}{situation}\n\n"
+        f"उपरोक्त कानूनी धाराओं का उपयोग करते हुए एक पूर्ण, विस्तृत और वास्तविक कानूनी दस्तावेज़ तैयार करें।"
+    )
 
 @app.post(
     "/api/documents/generate",
