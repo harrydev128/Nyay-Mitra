@@ -1,7 +1,7 @@
+
 import React, { useState, useRef } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, Share } from 'react-native';
 import ViewShot from 'react-native-view-shot';
-import { useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { useAppContext } from '../context/AppContext';
 import HeaderToggle from '../components/HeaderToggle';
@@ -145,6 +145,7 @@ export default function RentAgreementScreen() {
           </>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
