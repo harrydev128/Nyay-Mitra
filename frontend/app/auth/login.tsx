@@ -34,11 +34,11 @@ export default function LoginScreen() {
             });
             if (error) {
                 if (error.message.includes('Invalid login')) {
-                    Alert.alert('गलत जानकारी', 'Email या Password गलत है');
+                    showAlert('गलत जानकारी', 'Email या Password गलत है');
                 } else if (error.message.includes('Email not confirmed')) {
-                    Alert.alert('Email Verify करें', 'कृपया अपना Email verify करें');
+                    showAlert('Email Verify करें', 'कृपया अपना Email verify करें');
                 } else {
-                    Alert.alert('Error', error.message);
+                    showAlert('Error', error.message);
                 }
                 return;
             }
@@ -65,7 +65,7 @@ export default function LoginScreen() {
                 router.replace('/(tabs)');
             }
         } catch (e) {
-            Alert.alert('Error', 'Login failed. Please try again.');
+            showAlert('Error', 'Login failed. Please try again.');
         } finally {
             setLoading(false);
         }
