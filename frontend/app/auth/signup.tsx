@@ -93,11 +93,10 @@ export default function SignupScreen() {
                     premiumExpiry: premiumExpiry,
                 };
 
-                Alert.alert(
-                    '📧 Email Verify करें',
-                    'आपके Gmail पर एक confirmation link भेजा गया है। कृपया उसे click करके account verify करें, फिर Login करें।',
-                    [{ text: 'Login करें', onPress: () => router.replace('/auth/login') }]
-                );
+                      setUser(userData as any);
+                      setUserEmail(userData.email);
+                      setIsLoggedIn(true);
+                      router.replace('/(tabs)');
             }
         } catch (e) {
             Alert.alert('Error', 'Signup failed. Please try again.');
@@ -226,3 +225,4 @@ const getStyles = (Colors: any) => StyleSheet.create({
     loginText: { color: Colors.textSecondary, fontSize: 14 },
     loginHighlight: { color: Colors.deepBlue, fontWeight: 'bold' },
 });
+
