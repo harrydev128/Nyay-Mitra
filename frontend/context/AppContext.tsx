@@ -1,5 +1,24 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+
+// Cross-platform storage
+const storage = {
+  getItem: async (key: string) => {
+    if (Platform.OS === 'web') return localStorage.getItem(key);
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    return AsyncStorage.getItem(key);
+  },
+  setItem: async (key: string, value: string) => {
+    if (Platform.OS === 'web') return localStorage.setItem(key, value);
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    return AsyncStorage.setItem(key, value);
+  },
+  removeItem: async (key: string) => {
+    if (Platform.OS === 'web') return localStorage.removeItem(key);
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    return AsyncStorage.removeItem(key);
+  },
+};
 
 type Language = 'en' | 'hi';
 type Plan = 'free' | 'silver' | 'gold' | 'pro';
@@ -50,54 +69,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const toggleNotificationPanel = () => setNotificationPanel(!notificationPanel);
 
-  // Load user data on startup
   React.useEffect(() => {
     Promise.all([loadUserData(), loadTheme(), loadLanguage()]).finally(() => setIsLoading(false));
   }, []);
 
   const loadLanguage = async () => {
     try {
-      const saved = await AsyncStorage.getItem('app_language');
+      const saved = await storage.getItem('app_language');
       if (saved === 'hi' || saved === 'en') setLanguage(saved);
-    } catch (error) {
-      
-    }
+    } catch {}
   };
 
   const changeLanguage = async (lang: Language) => {
     setLanguage(lang);
-    try {
-      await AsyncStorage.setItem('app_language', lang);
-    } catch (error) {
-      
-    }
+    try { await storage.setItem('app_language', lang); } catch {}
   };
 
   const loadTheme = async () => {
     try {
-      const storedTheme = await AsyncStorage.getItem('app_theme');
-      if (storedTheme === 'dark' || storedTheme === 'light') {
-        setTheme(storedTheme);
-      }
-    } catch (error) {
-      
-    }
+      const storedTheme = await storage.getItem('app_theme');
+      if (storedTheme === 'dark' || storedTheme === 'light') setTheme(storedTheme);
+    } catch {}
   };
 
   const toggleTheme = async () => {
     try {
       const newTheme = theme === 'light' ? 'dark' : 'light';
       setTheme(newTheme);
-      await AsyncStorage.setItem('app_theme', newTheme);
-    } catch (error) {
-      
-    }
+      await storage.setItem('app_theme', newTheme);
+    } catch {}
   };
 
   const loadUserData = async () => {
     try {
-      const userData = await AsyncStorage.getItem('nyaymitra_user');
-
+      const userData = await storage.getItem('nyaymitra_user');
       if (userData) {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
@@ -105,44 +110,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setUserEmail(parsedUser.email);
         setIsPremium(parsedUser.plan !== 'free');
       }
-    } catch (error) {
-      
-    }
+    } catch {}
   };
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem('nyaymitra_user');
+      await storage.removeItem('nyaymitra_user');
       setUser(null);
       setIsLoggedIn(false);
       setUserEmail('');
       setIsPremium(false);
-    } catch (error) {
-      
-    }
+    } catch {}
   };
 
   return (
     <AppContext.Provider
       value={{
-        language,
-        setLanguage: changeLanguage,
-        changeLanguage,
-        theme,
-        toggleTheme,
-        isPremium,
-        setIsPremium,
-        isLoggedIn,
-        setIsLoggedIn,
-        userEmail,
-        setUserEmail,
-        user,
-        setUser,
-        notificationPanel,
-        setNotificationPanel,
-        toggleNotificationPanel,
-        logout,
-        isLoading,
+        language, setLanguage: changeLanguage, changeLanguage,
+        theme, toggleTheme, isPremium, setIsPremium,
+        isLoggedIn, setIsLoggedIn, userEmail, setUserEmail,
+        user, setUser, notificationPanel, setNotificationPanel,
+        toggleNotificationPanel, logout, isLoading,
       }}
     >
       {children}
