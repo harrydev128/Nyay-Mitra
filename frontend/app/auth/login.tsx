@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import { useAppContext } from '../../context/AppContext';
 import { LightColors, DarkColors } from '../../constants/colors';
 import { supabase } from '../../services/supabase';
+import { showAlert } from '../../utils/showAlert';
 
 export default function LoginScreen() {
     const { theme, toggleTheme, setIsLoggedIn, setUserEmail, setUser } = useAppContext();
@@ -20,14 +21,6 @@ export default function LoginScreen() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-
-    const showAlert = (title: string, msg: string) => {
-        if (typeof window !== 'undefined') {
-            window.alert(title + ': ' + msg);
-        } else {
-            Alert.alert(title, msg);
-        }
-    };
 
     const handleLogin = async () => {
         if (!email.trim() || !password.trim()) {

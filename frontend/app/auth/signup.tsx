@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import { useAppContext } from '../../context/AppContext';
 import { LightColors, DarkColors } from '../../constants/colors';
 import { supabase } from '../../services/supabase';
+import { showAlert } from '../../utils/showAlert';
 
 export default function SignupScreen() {
     const { theme, toggleTheme, setIsLoggedIn, setUserEmail, setUser } = useAppContext();
