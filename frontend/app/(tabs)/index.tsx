@@ -11,6 +11,7 @@ import HeaderToggle from '../../components/HeaderToggle';
 import SideDrawer from '../../components/SideDrawer';
 import AdBanner from '../../components/AdBanner';
 import AajKaAdhikar from '../../components/AajKaAdhikar';
+import TrialBanner from '../../components/TrialBanner';
 
 const { width } = Dimensions.get('window');
 
