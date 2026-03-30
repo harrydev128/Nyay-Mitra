@@ -66,8 +66,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [notificationPanel, setNotificationPanel] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [trialDaysLeft, setTrialDaysLeft] = useState(0);
+  const [hasFullAccess, setHasFullAccess] = useState(false);
 
   const toggleNotificationPanel = () => setNotificationPanel(!notificationPanel);
+
+  const refreshTrialStatus = async (userId: string) => {
+    try {
+      const { checkTrialStatus } = require('../utils/trial');
+      const status = await checkTrialStatus(userId);
+      setTrialDaysLeft(status.daysLeft);
+      setHasFullAccess(status.hasAccess);
+      if (status.isPremium) setIsPremium(true);
+    } catch {}
+  };
 
   React.useEffect(() => {
     Promise.all([loadUserData(), loadTheme(), loadLanguage()]).finally(() => setIsLoading(false));
@@ -122,6 +134,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setIsLoggedIn(true);
         setUserEmail(parsedUser.email);
         setIsPremium(parsedUser.plan !== 'free');
+        if (parsedUser.id) refreshTrialStatus(parsedUser.id);
       }
     } catch {}
   };
@@ -146,6 +159,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         isLoggedIn, setIsLoggedIn, userEmail, setUserEmail,
         user, setUser, notificationPanel, setNotificationPanel,
         toggleNotificationPanel, logout, isLoading,
+        trialDaysLeft, hasFullAccess, refreshTrialStatus,
       }}
     >
       {children}
