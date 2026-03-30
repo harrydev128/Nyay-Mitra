@@ -10,6 +10,7 @@ import { useAppContext } from '../../context/AppContext';
 import HeaderToggle from '../../components/HeaderToggle';
 import SideDrawer from '../../components/SideDrawer';
 import AdBanner from '../../components/AdBanner';
+import AajKaAdhikar from '../../components/AajKaAdhikar';
 
 const { width } = Dimensions.get('window');
 

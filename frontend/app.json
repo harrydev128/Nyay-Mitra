@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "NyayMitra",
+    "slug": "nyaymitra",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -33,6 +33,13 @@
           "resizeMode": "contain",
           "backgroundColor": "#000"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#FF6B00"
+        }
       ]
     ],
     "experiments": {
@@ -40,6 +47,11 @@
     },
     "extra": {
       "razorpayKey": ""
+    },
+    "notification": {
+      "icon": "./assets/images/icon.png",
+      "color": "#FF6B00",
+      "androidMode": "default"
     }
   }
 }
