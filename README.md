@@ -1,268 +1,183 @@
 <div align="center">
 
+<img src="https://img.shields.io/badge/⚖️_NyayMitra-भारत_का_AI_वकील-FF6B00?style=for-the-badge" />
+
 # ⚖️ NyayMitra
-### भारत का AI कानूनी सहायक | India's AI Legal Assistant
+## भारत का AI Legal Assistant
 
-[![React Native](https://img.shields.io/badge/React_Native-0.76-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactnative.dev/)
-[![Expo](https://img.shields.io/badge/Expo-SDK_54-000020?style=for-the-badge&logo=expo&logoColor=white)](https://expo.dev/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-Python-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Supabase](https://img.shields.io/badge/Supabase-Auth-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
-[![Railway](https://img.shields.io/badge/Railway-Deployed-0B0D0E?style=for-the-badge&logo=railway&logoColor=white)](https://railway.app/)
+> *"न्याय सबका अधिकार है — अब Hindi में, AI से, ₹49 में"*
 
-<br/>
-
-> **NyayMitra** — एक AI-powered mobile application जो भारत के आम नागरिकों को उनके कानूनी अधिकारों की जानकारी देती है, legal documents बनाने में मदद करती है, और 24/7 AI वकील की सुविधा प्रदान करती है।
-
-<br/>
-
-![NyayMitra Banner](https://img.shields.io/badge/⚖️_NyayMitra-भारत_का_AI_वकील-E8610A?style=for-the-badge)
+[![Live Demo](https://img.shields.io/badge/🌐_Live_App-Visit_Now-FF6B00?style=for-the-badge)](https://nyay-mitra-wfqb.vercel.app)
+[![Backend](https://img.shields.io/badge/🚂_API-Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white)](https://railway.app)
+[![Made in India](https://img.shields.io/badge/Made_with_❤️-India-FF9933?style=for-the-badge)](https://github.com/harrydev128/Nyay-Mitra)
+[![License](https://img.shields.io/badge/License-MIT-1a237e?style=for-the-badge)](LICENSE)
 
 </div>
 
 ---
 
-## 📱 Screenshots
+## 🇮🇳 The Problem — Bharat Ka Asli Dard
 
-<div align="center">
+India mein **1.4 billion** log hain.  
+Par **kanoon** sirf unke liye hai jinke paas:
 
-| Home Screen | AI Lawyer | Documents | Rights |
-|:-----------:|:---------:|:---------:|:------:|
-| ![Home](https://via.placeholder.com/150x280/141B3C/E8610A?text=Home) | ![Chat](https://via.placeholder.com/150x280/141B3C/E8610A?text=AI+Chat) | ![Docs](https://via.placeholder.com/150x280/141B3C/E8610A?text=Documents) | ![Rights](https://via.placeholder.com/150x280/141B3C/E8610A?text=Rights) |
+| ❌ Aam Aadmi | ✅ Elite |
+|:---:|:---:|
+| Vakeel afford nahi kar sakta | ₹5000/hr vakeel hire karta hai |
+| English nahi aati | English mein documents padhta hai |
+| Rights pata nahi | Apne rights jaanta hai |
+| Police se darta hai | Law use karta hai apne liye |
 
-</div>
+**NyayMitra** is gap ko bharta hai. 🔥
 
 ---
 
 ## ✨ Features
 
-<table>
-<tr>
-<td width="50%">
+### 🤖 AI Vakeel — 24/7 Kanuni Sahayak
+```
+Koi bhi kanuni sawaal → Hindi mein jawab → Turant
+```
+- Groq LLaMA3-70B powered — Lightning fast
+- Hindi + English dono supported  
+- FIR guidance, consumer rights, property disputes
 
-### 🤖 AI कानूनी सहायक
-- **24/7 AI Lawyer** — Hindi & English में
-- Groq LLaMA 3.3 70B model powered
-- Indian law के अनुसार सटीक जानकारी
-- BNS, BNSS, RTI Act, Consumer Protection Act
+### ⚖️ 40+ Kanuni Adhikar — Apna Haq Jaano
+- 🏠 Kiraaydaar Adhikar
+- 👮 Police Girftari ke Rights
+- 👩 Mahila Adhikar  
+- 🛒 Upbhokta Adhikar
+- 👷 Karmchaari Adhikar
+- 👶 Bal Adhikar
+- ...aur bahut kuch
 
-</td>
-<td width="50%">
+### 📄 AI Document Generator
+| Document | Description |
+|----------|-------------|
+| 📝 Kiraya Samjhauta | Complete rent agreement |
+| 🚨 FIR Draft | Auto-formatted complaint |
+| ⚠️ Legal Notice | Ready to send |
+| 💰 Salary Calculator | Take-home calculate karo |
+| 🚦 e-Challan Checker | Traffic fine status |
 
-### 📝 Document Generator
-- **Police Complaint** — BNS sections के साथ
-- **Rent Agreement** — Transfer of Property Act
-- **RTI Application** — RTI Act 2005
-- **Labour Complaint** — Industrial Disputes Act
-- **Consumer Complaint** — Consumer Protection Act 2019
+### 🏛️ Sarkari Yojnaayein
+- PM Kisan Samman Nidhi — ₹6000/saal
+- Ayushman Bharat — ₹5 lakh muft ilaaj
+- 10+ schemes with eligibility info
 
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-### 🔍 Document Scanner
-- AI-powered document analysis
-- Legal validity check
-- Rights identification
-- Immediate action steps
-
-</td>
-<td width="50%">
-
-### 🏛️ More Features
-- **40+ Legal Rights** — detailed information
-- **Govt Schemes** — PM Kisan, Ayushman Bharat etc.
-- **Emergency Helplines** — 112, 181, 15100 etc.
-- **Court Tracker** — case status tracking
-- **Property Guide** — property dispute guide
-- **Salary Calculator** — labour law based
-- **e-Challan Checker** — traffic violation
-
-</td>
-</tr>
-</table>
+### 🔐 Secure Auth System
+- ✅ Email OTP Verification
+- ✅ Magic Link Login
+- ✅ Referral System (7 din Silver FREE)
+- ✅ Supabase powered security
 
 ---
 
-## 🛠️ Tech Stack
-
-<div align="center">
-
-| Category | Technology |
-|----------|-----------|
-| **Frontend** | React Native + Expo SDK 54 |
-| **Backend** | FastAPI (Python) |
-| **AI Model** | Groq — LLaMA 3.3 70B + LLaMA 4 Scout (Vision) |
-| **Database** | Supabase (PostgreSQL) |
-| **Auth** | Supabase Auth (Email + OTP) |
-| **Payment** | Razorpay |
-| **Deployment** | Railway (Backend) |
-| **State Management** | React Context API |
-| **Navigation** | Expo Router (File-based) |
-
-</div>
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- Python 3.8+
-- Expo Go app (for testing)
-- Git
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/dhirendram128-netizen/Nyay-Mitra.git
-cd Nyay-Mitra
+## 💎 Plans
+```
+FREE        → ₹0/mo    → Basic AI chat
+SILVER  ⭐  → ₹49/mo   → 40+ rights + unlimited docs + AI scanner
+GOLD    🥇  → ₹149/mo  → Silver + PDF + Lawyer review
+PRO     👑  → ₹499/mo  → Gold + 1:1 Vakeel + 24/7 Priority
 ```
 
-### 2. Frontend Setup
+---
 
+## 🏗️ Tech Stack
+```
+📱 Frontend    →  Expo React Native (Web + Android + iOS)
+⚙️  Backend    →  FastAPI (Python) on Railway
+🗄️  Database   →  Supabase (PostgreSQL)
+🔐 Auth        →  Supabase Auth (OTP + Magic Link)
+🤖 AI Model    →  Groq LLaMA3-70B-8192
+💳 Payments    →  Razorpay
+🌐 Deploy      →  Vercel (Frontend) + Railway (Backend)
+```
+
+---
+
+## 🚀 Local Setup
+
+### Frontend
 ```bash
-cd frontend
+git clone https://github.com/harrydev128/Nyay-Mitra.git
+cd Nyay-Mitra/frontend
 npm install
-```
 
-Create `.env` file:
-```env
-EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+# .env file
+EXPO_PUBLIC_SUPABASE_URL=your_url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_key
 EXPO_PUBLIC_RAZORPAY_KEY_ID=your_razorpay_key
+
+npx expo start          # Mobile
+npx expo start --web    # Browser
 ```
 
-Start the app:
+### Backend
 ```bash
-npx expo start
-```
-
-### 3. Backend Setup
-
-```bash
-cd backend
+cd Nyay-Mitra/backend
 pip install -r requirements.txt
-```
 
-Create `.env` file:
-```env
-GROQ_API_KEY=your_groq_api_key
-```
+# .env file
+GROQ_API_KEY=your_key
+SUPABASE_URL=your_url
+SUPABASE_SERVICE_KEY=your_key
 
-Start the server:
-```bash
 python server.py
 ```
 
 ---
 
-## 📁 Project Structure
-
+## 📁 Structure
 ```
 Nyay-Mitra/
-├── frontend/                    # React Native App
+├── 📱 frontend/
 │   ├── app/
-│   │   ├── (tabs)/              # Main tab screens
-│   │   │   ├── index.tsx        # Home screen
-│   │   │   ├── chat.tsx         # AI Lawyer chat
-│   │   │   ├── rights.tsx       # Legal rights
-│   │   │   ├── documents.tsx    # Documents tab
-│   │   │   └── profile.tsx      # User profile
-│   │   ├── auth/                # Authentication
-│   │   │   ├── login.tsx
-│   │   │   └── signup.tsx
-│   │   ├── doc-generator.tsx    # Document generator
-│   │   ├── doc-scanner.tsx      # AI Document scanner
-│   │   ├── rti-writer.tsx       # RTI application writer
-│   │   ├── rent-agreement.tsx   # Rent agreement
-│   │   ├── property-guide.tsx   # Property guide
-│   │   ├── govt-schemes.tsx     # Government schemes
-│   │   ├── premium.tsx          # Premium plans
-│   │   └── emergency.tsx        # Emergency helplines
-│   ├── components/              # Reusable components
-│   ├── context/                 # App context (state)
-│   ├── services/                # API services
-│   └── constants/               # Colors, config
+│   │   ├── (tabs)/           # Home, AI Chat, Rights, Docs, Profile
+│   │   ├── auth/             # Login, Signup, OTP Verify
+│   │   ├── rent-agreement.tsx
+│   │   ├── salary-calculator.tsx
+│   │   └── challan-checker.tsx
+│   ├── context/AppContext.tsx # Global State
+│   ├── services/supabase.ts  # DB Client
+│   └── utils/showAlert.ts    # Cross-platform alerts
 │
-├── backend/                     # FastAPI Backend
-│   ├── server.py                # Main server file
+├── ⚙️  backend/
+│   ├── server.py             # FastAPI Server
 │   └── requirements.txt
 │
-└── README.md
+└── 📖 README.md
 ```
 
 ---
 
-## 💰 Premium Plans
+## 🌐 Links
 
-| Feature | Free | Silver ₹49/mo | Gold ₹149/mo | Pro ₹499/mo |
-|---------|:----:|:-------------:|:------------:|:-----------:|
-| AI Chat | 2/day | Unlimited | Unlimited | Unlimited |
-| Legal Rights | 10 | 40+ | 40+ | 40+ |
-| Documents | ❌ | ✅ | ✅ | ✅ |
-| Document Scanner | ❌ | ✅ | ✅ | ✅ |
-| PDF Download | ❌ | ❌ | ✅ | ✅ |
-| Lawyer Review | ❌ | ❌ | ✅ | ✅ |
-| 1:1 Consultation | ❌ | ❌ | ❌ | ✅ |
-| 24/7 Support | ❌ | ❌ | ❌ | ✅ |
-
----
-
-## 🔒 Security
-
-- ✅ Email verification required for new accounts
-- ✅ Supabase Row Level Security (RLS) enabled
-- ✅ API keys stored in environment variables only
-- ✅ No sensitive keys in source code
-- ✅ Rate limiting on all API endpoints (50 req/day per IP)
-- ✅ CORS protection enabled
-
----
-
-## ⚖️ Legal Disclaimer
-
-> NyayMitra provides **general legal awareness** only. It is **NOT** a substitute for professional legal advice. For serious legal matters, always consult a qualified lawyer. All information is based on Indian law and may vary by jurisdiction.
+| | Link |
+|--|------|
+| 🌐 Web App | [nyay-mitra-wfqb.vercel.app](https://nyay-mitra-wfqb.vercel.app) |
+| 🐙 GitHub | [harrydev128/Nyay-Mitra](https://github.com/harrydev128/Nyay-Mitra) |
 
 ---
 
 ## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
-## 📞 Support
-
-<div align="center">
-
-[![WhatsApp](https://img.shields.io/badge/WhatsApp_Support-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://wa.me/918573821917)
-
-**Mon-Sat | 10 AM - 6 PM**
-
-</div>
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+```bash
+git checkout -b feature/amazing-feature
+git commit -m "feat: add amazing feature"
+git push origin feature/amazing-feature
+# Open a Pull Request
+```
 
 ---
 
 <div align="center">
 
-**Made with ❤️ for भारत के आम नागरिक**
+## ⭐ Star this repo if it helped you!
 
-⚖️ **NyayMitra** — *न्याय सबके लिए*
+*भारत के हर नागरिक को उसका अधिकार मिलना चाहिए*
 
-![Footer](https://img.shields.io/badge/NyayMitra-Justice_for_All-E8610A?style=for-the-badge)
+**⚖️ NyayMitra — न्याय सबका अधिकार है**
+
+![Visitors](https://visitor-badge.laobi.icu/badge?page_id=harrydev128.Nyay-Mitra)
 
 </div>
