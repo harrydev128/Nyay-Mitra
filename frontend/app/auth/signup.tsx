@@ -93,10 +93,7 @@ export default function SignupScreen() {
                     premiumExpiry: premiumExpiry,
                 };
 
-                      setUser(userData as any);
-                      setUserEmail(userData.email);
-                      setIsLoggedIn(true);
-                      router.replace('/(tabs)');
+                router.push({ pathname: '/auth/verify', params: { email: email.trim().toLowerCase() } });
             }
         } catch (e) {
             Alert.alert('Error', 'Signup failed. Please try again.');
