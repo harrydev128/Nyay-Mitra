@@ -71,6 +71,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   React.useEffect(() => {
     Promise.all([loadUserData(), loadTheme(), loadLanguage()]).finally(() => setIsLoading(false));
+
+    // Supabase auth state listener
+    const { supabase } = require('../services/supabase');
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setIsLoggedIn(false);
+        setUserEmail('');
+        setIsPremium(false);
+        await storage.removeItem('nyaymitra_user');
+      }
+    });
+    return () => subscription?.unsubscribe();
   }, []);
 
   const loadLanguage = async () => {
@@ -115,12 +128,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await storage.removeItem('nyaymitra_user');
-      setUser(null);
-      setIsLoggedIn(false);
-      setUserEmail('');
-      setIsPremium(false);
+      const { supabase } = require('../services/supabase');
+      await supabase.auth.signOut();
     } catch {}
+    await storage.removeItem('nyaymitra_user');
+    setUser(null);
+    setIsLoggedIn(false);
+    setUserEmail('');
+    setIsPremium(false);
   };
 
   return (
