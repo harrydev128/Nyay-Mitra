@@ -33,12 +33,40 @@ export default function PremiumScreen() {
 
   const handlePlanSelect = useCallback((plan: string, price: number) => {
     if (price === 0) return;
-    const key = Constants.expoConfig?.extra?.razorpayKey || '';
+    const key = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || '';
+
+    // Web platform - use Razorpay checkout.js directly
+    if (Platform.OS === 'web') {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => {
+        const options = {
+          key: key,
+          amount: price * 100,
+          currency: 'INR',
+          name: 'NyayMitra',
+          description: plan + ' Plan',
+          theme: { color: '#E8610A' },
+          handler: function(response: any) {
+            window.alert('Payment Successful! Payment ID: ' + response.razorpay_payment_id);
+          },
+          modal: {
+            ondismiss: function() {}
+          }
+        };
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+      };
+      document.body.appendChild(script);
+      return;
+    }
+
+    // Android/iOS - use WebView
     const html = `<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f5f5f5;font-family:sans-serif;}</style>
+<style>body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f5f5f5;}</style>
 </head>
 <body>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
